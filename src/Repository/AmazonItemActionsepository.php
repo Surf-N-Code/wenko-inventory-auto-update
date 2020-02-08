@@ -2,21 +2,21 @@
 
 namespace App\Repository;
 
-use App\Entity\ItemsWenko;
+use App\Entity\AmazonItemActions;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Common\Persistence\ManagerRegistry;
 
 /**
- * @method ItemsWenko|null find($id, $lockMode = null, $lockVersion = null)
- * @method ItemsWenko|null findOneBy(array $criteria, array $orderBy = null)
- * @method ItemsWenko[]    findAll()
- * @method ItemsWenko[]    findBy(array $criteria, array $orderBy = null, $limit = null, $offset = null)
+ * @method AmazonItemActions|null find($id, $lockMode = null, $lockVersion = null)
+ * @method AmazonItemActions|null findOneBy(array $criteria, array $orderBy = null)
+ * @method AmazonItemActions[]    findAll()
+ * @method AmazonItemActions[]    findBy(array $criteria, array $orderBy = null, $limit = null, $offset = null)
  */
 class AmazonItemActionsepository extends ServiceEntityRepository
 {
     public function __construct(ManagerRegistry $registry)
     {
-        parent::__construct($registry, ItemsWenko::class);
+        parent::__construct($registry, AmazonItemActions::class);
     }
 
     // /**

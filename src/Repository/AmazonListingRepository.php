@@ -2,22 +2,22 @@
 
 namespace App\Repository;
 
-use App\Entity\ListingsAmazon;
+use App\Entity\AmazonListing;
 use App\Entity\ItemsWenko;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Common\Persistence\ManagerRegistry;
 
 /**
- * @method ListingsAmazon|null find($id, $lockMode = null, $lockVersion = null)
- * @method ListingsAmazon|null findOneBy(array $criteria, array $orderBy = null)
- * @method ListingsAmazon[]    findAll()
- * @method ListingsAmazon[]    findBy(array $criteria, array $orderBy = null, $limit = null, $offset = null)
+ * @method AmazonListing|null find($id, $lockMode = null, $lockVersion = null)
+ * @method AmazonListing|null findOneBy(array $criteria, array $orderBy = null)
+ * @method AmazonListing[]    findAll()
+ * @method AmazonListing[]    findBy(array $criteria, array $orderBy = null, $limit = null, $offset = null)
  */
-class ListingsAmazonRepository extends ServiceEntityRepository
+class AmazonListingRepository extends ServiceEntityRepository
 {
     public function __construct(ManagerRegistry $registry)
     {
-        parent::__construct($registry, ListingsAmazon::class);
+        parent::__construct($registry, AmazonListing::class);
     }
 
     public function getItemsToRemove(): ?array
@@ -27,9 +27,9 @@ class ListingsAmazonRepository extends ServiceEntityRepository
                         ItemsWenko::class,
                         'wenko',
                         \Doctrine\ORM\Query\Expr\Join::WITH,
-                        'wenko.ean = amazon.ean'
+                        'wenko.sku = amazon.sku'
                     )
-                    ->andWhere('wenko.ean IS NULL')
+                    ->andWhere('wenko.sku IS NULL')
                     ->getQuery()
                     ->getResult()
             ;

@@ -102,7 +102,7 @@ class AmazonClient
         }
     }
 
-    public function getReportById(string $reportId): array
+    public function getReportById(string $reportId)
     {
         try {
             return $this->client->getReport($reportId);
@@ -117,6 +117,15 @@ class AmazonClient
             return $this->client->GetReportRequestStatus($reportId);
         } catch (\Exception $e) {
             throw new AmazonApiException(sprintf('Failed getting the report status for report: %s with message: %s', $reportId, $e->getMessage()));
+        }
+    }
+
+    public function deleteProductBySku(array $skus): array
+    {
+        try {
+            return $this->client->deleteProductBySKU($skus);
+        } catch (\Exception $e) {
+            throw new AmazonApiException(sprintf('Failed deleting amazon items with message: %s', $e->getMessage()));
         }
     }
 }

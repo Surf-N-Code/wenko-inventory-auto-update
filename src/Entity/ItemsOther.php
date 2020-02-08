@@ -155,6 +155,28 @@ class ItemsOther
      */
     private $Brand;
 
+    /**
+     * @var string $name
+     *
+     * @ORM\Column(name="name", type="string")
+     */
+    private $name;
+
+    /**
+     * @return string
+     */
+    public function getName(): string
+    {
+        return $this->name;
+    }
+
+    /**
+     * @param string $name
+     */
+    public function setName(string $name): void
+    {
+        $this->name = $name;
+    }
 
     public function getArticleId(): ?int
     {
@@ -423,24 +445,12 @@ class ItemsOther
         return $this;
     }
 
-    public function getName(): ?string
-    {
-        return $this->name;
-    }
-
-    public function setName(string $name): self
-    {
-        $this->name = $name;
-
-        return $this;
-    }
-
-    public function getUvp(): ?float
+    public function getPrice(): ?float
     {
         return $this->uvp;
     }
 
-    public function setUvp(float $uvp): self
+    public function setPrice(float $uvp): self
     {
         $this->uvp = $uvp;
 

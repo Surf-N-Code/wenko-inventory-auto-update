@@ -9,13 +9,6 @@ use Doctrine\ORM\Mapping as ORM;
 trait BaseItemPropertiesTrait
 {
     /**
-     * @var string $ean
-     *
-     * @ORM\Column(name="ean", type="string")
-     */
-    private $ean;
-
-    /**
      * @var string $sku
      *
      * @ORM\Column(name="sku", type="string")
@@ -23,18 +16,11 @@ trait BaseItemPropertiesTrait
     private $sku;
 
     /**
-     * @var string $name
-     *
-     * @ORM\Column(name="name", type="string")
-     */
-    private $name;
-
-    /**
-     * @var float $uvp
+     * @var float $price
      *
      * @ORM\Column(name="uvp", type="float")
      */
-    private $uvp;
+    private $price;
 
     /**
      * @var int $stock
@@ -62,22 +48,6 @@ trait BaseItemPropertiesTrait
     /**
      * @return string
      */
-    public function getEan(): string
-    {
-        return $this->ean;
-    }
-
-    /**
-     * @param string $ean
-     */
-    public function setEan(string $ean): void
-    {
-        $this->ean = $ean;
-    }
-
-    /**
-     * @return string
-     */
     public function getName(): string
     {
         return $this->name;
@@ -94,17 +64,17 @@ trait BaseItemPropertiesTrait
     /**
      * @return float
      */
-    public function getUvp(): float
+    public function getPrice(): float
     {
-        return $this->uvp;
+        return $this->price;
     }
 
     /**
-     * @param float $uvp
+     * @param float $price
      */
-    public function setUvp(float $uvp): void
+    public function setPrice(float $price): void
     {
-        $this->uvp = $uvp;
+        $this->price = $price;
     }
 
     /**

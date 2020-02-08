@@ -13,14 +13,12 @@ use App\Entity\Traits\BaseItemPropertiesTrait;
 class AmazonItemActions
 {
 
-    public function __construct($amazonAction, $ean, $sku, $name, $stock, $uvp)
+    public function __construct($amazonAction, $sku, $stock, $price)
     {
         $this->amazonAction = $amazonAction;
-        $this->ean = $ean;
         $this->sku = $sku;
-        $this->name = $name;
         $this->stock = $stock;
-        $this->uvp = $uvp;
+        $this->price = $price;
         $this->createdAt = new \DateTime('now');
         $this->updatedAt = new \DateTime('now');
     }

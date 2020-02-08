@@ -5,9 +5,9 @@ namespace App\Entity;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
- * @ORM\Entity(repositoryClass="App\Repository\ItemUpdateStatusRepository")
+ * @ORM\Entity(repositoryClass="App\Repository\AmazonFeedSubmissionRepository")
  */
-class ItemUpdateStatus
+class AmazonFeedSubmission
 {
     /**
      * @ORM\Id()
@@ -17,16 +17,6 @@ class ItemUpdateStatus
     private $id;
 
     /**
-     * @ORM\Column(type="string", length=255)
-     */
-    private $identifier;
-
-    /**
-     * @ORM\Column(type="string", length=255)
-     */
-    private $identifierType;
-
-    /**
      * @ORM\Column(type="string")
      */
     private $feedSubmissionId;
@@ -34,7 +24,7 @@ class ItemUpdateStatus
     /**
      * @ORM\Column(type="datetime")
      */
-    private $updatedAt;
+    private $submittedAt;
 
     /**
      * @ORM\Column(type="string", length=255)
@@ -56,29 +46,6 @@ class ItemUpdateStatus
         return $this->id;
     }
 
-    public function getIdentifier(): ?string
-    {
-        return $this->identifier;
-    }
-
-    public function setIdentifier(string $identifier): self
-    {
-        $this->identifier = $identifier;
-
-        return $this;
-    }
-
-    public function getIdentifierType(): ?string
-    {
-        return $this->identifierType;
-    }
-
-    public function setIdentifierType(string $identifierType): self
-    {
-        $this->identifierType = $identifierType;
-
-        return $this;
-    }
 
     public function getFeedSubmissionId(): ?int
     {
@@ -92,14 +59,14 @@ class ItemUpdateStatus
         return $this;
     }
 
-    public function getUpdatedAt(): ?\DateTimeInterface
+    public function getSubmittedAt(): ?\DateTimeInterface
     {
-        return $this->updatedAt;
+        return $this->submittedAt;
     }
 
-    public function setUpdatedAt(\DateTimeInterface $updatedAt): self
+    public function setSubmittedAt(\DateTimeInterface $submittedAt): self
     {
-        $this->updatedAt = $updatedAt;
+        $this->submittedAt = $submittedAt;
 
         return $this;
     }

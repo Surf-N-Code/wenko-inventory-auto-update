@@ -36,15 +36,13 @@ class AmazonReportRequestsRepository extends ServiceEntityRepository
     }
     */
 
-    /*
-    public function findOneBySomeField($value): ?AmazonReportRequests
+    public function findPendingReports(): ?array
     {
         return $this->createQueryBuilder('a')
-            ->andWhere('a.exampleField = :val')
-            ->setParameter('val', $value)
+            ->andWhere('a.reportStatus != :status')
+            ->setParameter('status', '_DONE_')
             ->getQuery()
-            ->getOneOrNullResult()
+            ->getResult()
         ;
     }
-    */
 }

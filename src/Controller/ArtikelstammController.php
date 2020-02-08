@@ -3,10 +3,11 @@
 namespace App\Controller;
 
 use App\Entity\AmazonReportRequests;
-use App\Entity\ListingsAmazon;
+use App\Entity\AmazonListing;
 use App\Entity\AmazonItemActions;
 use App\Entity\ItemsWenko;
-use App\Entity\ItemUpdateStatus;
+use App\Entity\AmazonFeedSubmission;
+use App\Repository\AmazonItemActionsepository;
 use App\Repository\AmazonReportRequestsRepository;
 use App\Services\AmazonClient;
 use App\Services\AmazonHandler;
@@ -21,10 +22,6 @@ class ArtikelstammController extends AbstractController
 {
     private $amazonClient;
     private $em;
-
-    /**
-     * @var \App\Services\AmazonHandler
-     */
     private $amazonHandler;
 
     public function __construct(AmazonClient $amazonClient, EntityManagerInterface $em, AmazonHandler $amazonHandler)
@@ -35,7 +32,34 @@ class ArtikelstammController extends AbstractController
     }
 
     /**
-     * @Route("/readItemFile", name="itemfile.read")
+     * @Route("/home", name="home")
+     */
+    public function home()
+    {
+        return $this->render('base.html.twig');
+    }
+
+    /**
+     * @Route("/amazon/delete-used-products", name="index")
+     */
+    public function deleteUsedProducts()
+    {
+        $amazonListingRepo = $this->em->getRepository(AmazonListing::class);
+        $usedItems = $amazonListingRepo->findBy(['itemCondition' => 'UsedLikeNew']);
+        foreach($usedItems as $usedItem) {
+//            $this->em->remove($usedItem);
+            $sku[] = $usedItem->getSku();
+        }
+//        $this->em->flush();
+        //12100102 - deleted
+        //23781102
+        $response = $this->amazonHandler->deleteProductBySku(['23928100']);
+        dd($response);
+        return new Response("Deleting items");
+    }
+
+    /**
+     * @Route("/wenko/read-itemfile", name="items.wenko.read_itemfile")
      */
     public function readItemFile(EntityManagerInterface $em)
     {
@@ -45,7 +69,6 @@ class ArtikelstammController extends AbstractController
         $csv->setHeaderOffset(0);
 
         $records = $csv->getRecords(); //returns all the CSV records as an Iterator object
-
         $classMetaData = $em->getClassMetadata(ItemsWenko::class);
         $connection = $em->getConnection();
         $dbPlatform = $connection->getDatabasePlatform();
@@ -96,11 +119,9 @@ class ArtikelstammController extends AbstractController
             $art->setShopCategory($record['category']);
             $art->setShopUrl($record['url']);
             $art->setSku($record['sku']);
-            $art->setUvp($record['price_incl_tax']);
+            $art->setPrice($record['price_incl_tax']);
             $art->setWeight($record['weight']);
-            $art->setVkDiscount(0);
             $art->calculateCost(0.6, 0);
-            $art->setSalePrice();
             $art->setBrand("Wenko");
 
             $em->persist($art);
@@ -110,21 +131,20 @@ class ArtikelstammController extends AbstractController
             }
             $i++;
         }
-        $em->flush(); //Persist objects that did not make up an entire batch
+        $em->flush();
         $em->clear();
 
-
         return $this->render('artikelstamm/index.html.twig', [
-            'controller_name' => 'ArtikelstammController',
+            'statusMessage' => sprintf('Added: %s wenko products to the wenko item database', $i)
         ]);
     }
 
     /**
-     * @Route("/getamazonactions", name="items.amazon.get_actions")
+     * @Route("/amazon/get-item-actions", name="items.amazon.get_item_actions")
      */
-    public function getProductsToAdd(EntityManagerInterface $em) {
+    public function getAmazonItemActions(EntityManagerInterface $em) {
         $wenkoItemRepo = $this->getDoctrine()->getRepository(ItemsWenko::class);
-        $amazonItemRepo = $this->getDoctrine()->getRepository(ListingsAmazon::class);
+        $amazonItemRepo = $this->getDoctrine()->getRepository(AmazonListing::class);
         $itemsToRemove = $amazonItemRepo->getItemsToRemove();
         $itemsToAdd = $wenkoItemRepo->getItemsToAdd();
         $itemsToUpdate = $wenkoItemRepo->getItemsToUpdate();
@@ -132,13 +152,13 @@ class ArtikelstammController extends AbstractController
         $itemActionCollection = [
             'remove' => $itemsToRemove,
             'add' => $itemsToAdd,
-            'update' => $itemsToUpdate
+            'update' => $itemsToUpdate,
         ];
 
         $itemActionCollectionStats = [
             'remove' => 0,
             'add' => 0,
-            'update' => 0
+            'update' => 0,
         ];
         $i = 0;
         $statCount = 0;
@@ -147,11 +167,9 @@ class ArtikelstammController extends AbstractController
             foreach($items as $item) {
                 $itemActionEntity = new AmazonItemActions(
                     $itemAction,
-                    $item->getEan(),
                     $item->getSku(),
-                    $item->getName(),
                     $item->getStock(),
-                    $item->getUvp()
+                    $item->getPrice()
                 );
                 $em->persist($itemActionEntity);
                 if (($i % $batchSize) === 0) {
@@ -167,73 +185,74 @@ class ArtikelstammController extends AbstractController
         $em->flush();
         $em->clear();
 
-        return new Response(
-            sprintf(
+        return $this->render('artikelstamm/index.html.twig', [
+            'statusMessage' => sprintf(
                 'Removed: %s, added: %s, updated: %s',
                 $itemActionCollectionStats['remove'],
                 $itemActionCollectionStats['add'],
                 $itemActionCollectionStats['update']
             )
-        );
+        ]);
     }
 
     /**
-     * @Route("/updateAmazonStock", name="items.amazon.update")
+     * @Route("/amazon/update-stock", name="items.amazon.update")
      */
-    public function updateAmazonStock()
+    public function updateAmazonStock(AmazonItemActionsepository $amazonItemActionsepository)
     {
         //@todo: http://docs.developer.amazonservices.com/en_US/notifications/Notifications_FeedProcessingFinishedNotification.html
 
         ini_set('max_execution_time', 99999);
-        $items = $this->getDoctrine()->getRepository(ItemsWenko::class)->findAll();
+        $items = $amazonItemActionsepository->findAll();
 
+        $skuActions = [];
+        /** @var AmazonItemActions $item */
         foreach ($items as $item) {
-            sleep(10);
-            $product = $this->amazonClient->getProductDetails([$item->getEan()]);
-            if (count($product['found']) > 0) {
-                dump($item->getSku());
-                $this->updateProductInventory($product, $item->getSku(), $item->getStock());
+            $debug[$item->getAmazonAction()][] = [
+                'sku'   => $item->getSku(),
+                'price' => $item->getPrice(),
+                'stock' => $item->getStock()
+            ];
+
+            switch ($item->getAmazonAction()) {
+                case 'update':
+                    $skuActions['update'][] = [
+                        'sku'   => $item->getSku(),
+                        'price' => $item->getPrice()
+                    ];
+                    break;
+
+                case 'add':
+                    $skuActions['add'][] = [
+                        'sku'   => $item->getSku(),
+                        'price' => $item->getPrice()
+                    ];
+                    break;
+
+                case 'remove':
+                    $skuActions['remove'][] = [
+                        'sku'   => $item->getSku()
+                    ];
+                    break;
             }
         }
-        dump($product);
-        dd();
-    }
+        dump($skuActions);
+//        dd($debug);
+        $updateResponse = $this->amazonClient->updateProductInventory($skuActions);
 
-    private function updateProductInventory($productsFound, $skuToUpdate, $quantity)
-    {
-        if (count($productsFound['found']) > 0) {
-            $skuQuantity[$skuToUpdate] = $quantity;
-            $updateResponse = $this->amazonClient->updateProductInventory($skuQuantity);
-            $itemUpdateStatus = new ItemUpdateStatus();
-            $itemUpdateStatus->setFeedSubmissionId($updateResponse['FeedSubmissionId']);
-            $itemUpdateStatus->setIdentifier($skuToUpdate);
-            $itemUpdateStatus->setIdentifierType('SKU');
-            $itemUpdateStatus->setUpdatedAt(new \DateTime('now'));
-            $itemUpdateStatus->setFeedProcessingStatus($updateResponse['FeedProcessingStatus']);
-            $itemUpdateStatus->setFeedType($updateResponse['FeedType']);
-            $itemUpdateStatus->setSuccess(false);
-            $this->em->persist($itemUpdateStatus);
-            $this->em->flush();
-        }
+        $itemUpdateStatus = new AmazonFeedSubmission();
+        $itemUpdateStatus->setFeedSubmissionId($updateResponse['FeedSubmissionId']);
+        $itemUpdateStatus->setSubmittedAt(new \DateTime('now'));
+        $itemUpdateStatus->setFeedProcessingStatus($updateResponse['FeedProcessingStatus']);
+        $itemUpdateStatus->setFeedType($updateResponse['FeedType']);
+        $itemUpdateStatus->setSuccess(false);
+        $this->em->persist($itemUpdateStatus);
+        $this->em->flush();
+        dd($updateResponse);
     }
 
     /**
-     * @Route("/getfeedstatus", name="items.amazon.feedstatus")
-     */
-    public function getFeedSubmissionStatus()
-    {
-        $feeds = $this->getDoctrine()->getRepository(ItemUpdateStatus::class)->findBy(['feedProcessingStatus' => '_SUBMITTED_']);
-        /** @var ItemUpdateStatus $feed */
-        foreach($feeds as $feed) {
-            $result = $this->amazonClient->getFeedSubmissionResult($feed->getFeedSubmissionId());
-            dump($result);
-//            if ($result['ProcessingSummary']['MessagesSuccessful'])
-        }
-        dd("done");
-    }
-
-    /**
-     * @Route("/amazon/readitems", name="items.amazon.get_report")
+     * @Route("/amazon/get-listings-report", name="items.amazon.get_listings_report")
      */
     public function requestAmazonListingsReport() {
         try {
@@ -242,32 +261,78 @@ class ArtikelstammController extends AbstractController
             return new Response($e->getMessage());
         }
 
-        return new Response(sprintf('Successfully requested report with id: %s', $reportId));
+        return $this->render('artikelstamm/index.html.twig', [
+            'statusMessage' => sprintf('Successfully requested report with id: %s', $reportId)
+        ]);
     }
 
     /**
-     * @Route("/amazon/reportStatus", name="items.amazon.get_report_status")
+     * @Route("/amazon/get-report-status", name="items.amazon.get_report_status")
      */
     public function getReportRequestStatus(AmazonReportRequestsRepository $repo) {
         try {
             $stats = $this->amazonHandler->getReportRequestStatus();
         } catch (Exceptions\AmazonApiException $e) {
-            return new Response($e->getMessage());
+            return $this->render('artikelstamm/index.html.twig', [
+                'statusMessage' => 'Feed not ready yet'
+            ]);
         }
 
-        return new JsonResponse($stats);
+        $returnMessage = 'No pending feed found';
+        if (isset($stats['reportId'])) {
+            $returnMessage = sprintf('Feed id: %s, of type: %s, with status: %s', $stats['reportId'], $stats['reportName'], $stats['reportStatus']);
+        }
+
+        return $this->render('artikelstamm/index.html.twig', [
+            'statusMessage' => $returnMessage
+        ]);
     }
 
     /**
-     * @Route("/amazon/getreport", name="items.amazon.get_report")
+     * @Route("/amazon/get-report-listings/{reportId}", name="items.amazon.get_report_listings")
      */
-    public function getReportById() {
+    public function getReportById($reportId) {
         try {
-            $report = $this->amazonHandler->getAmazonListingsReport´d('88138018297');
+            $noListings = $this->amazonHandler->getAmazonListings($reportId);
         } catch (Exceptions\AmazonApiException $e) {
             return new Response($e->getMessage());
         }
-        dd($report);
-        return new JsonResponse($stats);
+
+        return $this->render('artikelstamm/index.html.twig', [
+            'statusMessage' => sprintf('Products added to db: %s, products updated: %s', $noListings['added'], $noListings['updated'])
+        ]);
+    }
+
+    /**
+     * @Route("/amazon/get-feed-submission-status/{feedId}", name="items.amazon.get_feed_sumission_status")
+     */
+    public function getFeedSubmissionStatus($feedId)
+    {
+        try {
+            $result = $this->amazonClient->getFeedSubmissionResult($feedId);
+        } catch (Exceptions\AmazonApiException $e) {
+            return $this->render('artikelstamm/index.html.twig', [
+                'Feed not ready yet, check back later'
+            ]);
+        }
+
+        $feedSubmissionRepo = $this->em->getRepository(AmazonFeedSubmission::class);
+
+        /** @var AmazonFeedSubmission $feed */
+        $feed = $feedSubmissionRepo->findBy(['feedSubmissionId' => $feedId])[0];
+        if ($result['StatusCode'] === 'Complete') {
+            $feed->setFeedProcessingStatus('_DONE_');
+            $feed->setSuccess(true);
+        }
+
+        return $this->render('artikelstamm/index.html.twig', [
+            'statusMessage' => sprintf(
+                '%s messages processed, %s successfull messages, %s messages with errors, %s messages with warning',
+                $result['ProcessingSummary']['MessagesProcessed'],
+                $result['ProcessingSummary']['MessagesSuccessful'],
+                $result['ProcessingSummary']['MessagesWithError'],
+                $result['ProcessingSummary']['MessagesWithWarning']
+            ),
+        ]);
     }
 }

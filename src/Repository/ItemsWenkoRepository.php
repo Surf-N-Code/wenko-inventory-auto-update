@@ -2,7 +2,7 @@
 
 namespace App\Repository;
 
-use App\Entity\ListingsAmazon;
+use App\Entity\AmazonListing;
 use App\Entity\ItemsWenko;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Common\Persistence\ManagerRegistry;
@@ -53,13 +53,13 @@ class ItemsWenkoRepository extends ServiceEntityRepository
     {
         return $this->createQueryBuilder('wenko')
             ->leftJoin(
-                ListingsAmazon::class,
+                AmazonListing::class,
                 'amazon',
                 \Doctrine\ORM\Query\Expr\Join::WITH,
-                'wenko.ean = amazon.ean'
+                'wenko.sku = amazon.sku'
             )
-            ->andWhere('amazon.ean IS NULL')
-            ->andWhere('wenko.uvp > 17.98')
+            ->andWhere('amazon.sku IS NULL')
+            ->andWhere('wenko.price > 17.98')
             ->getQuery()
             ->getResult()
         ;
@@ -69,11 +69,13 @@ class ItemsWenkoRepository extends ServiceEntityRepository
     {
         return $this->createQueryBuilder('wenko')
                     ->innerJoin(
-                        ListingsAmazon::class,
+                        AmazonListing::class,
                         'amazon',
                         \Doctrine\ORM\Query\Expr\Join::WITH,
-                        'wenko.ean = amazon.ean'
+                        'wenko.sku = amazon.sku'
                     )
+                    ->orWhere('wenko.price != amazon.price')
+                    ->orWhere('wenko.stock != amazon.stock')
                     ->getQuery()
                     ->getResult()
             ;

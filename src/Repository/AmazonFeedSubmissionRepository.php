@@ -2,25 +2,25 @@
 
 namespace App\Repository;
 
-use App\Entity\ItemUpdateStatus;
+use App\Entity\AmazonFeedSubmission;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Common\Persistence\ManagerRegistry;
 
 /**
- * @method ItemUpdateStatus|null find($id, $lockMode = null, $lockVersion = null)
- * @method ItemUpdateStatus|null findOneBy(array $criteria, array $orderBy = null)
- * @method ItemUpdateStatus[]    findAll()
- * @method ItemUpdateStatus[]    findBy(array $criteria, array $orderBy = null, $limit = null, $offset = null)
+ * @method AmazonFeedSubmission|null find($id, $lockMode = null, $lockVersion = null)
+ * @method AmazonFeedSubmission|null findOneBy(array $criteria, array $orderBy = null)
+ * @method AmazonFeedSubmission[]    findAll()
+ * @method AmazonFeedSubmission[]    findBy(array $criteria, array $orderBy = null, $limit = null, $offset = null)
  */
-class ItemUpdateStatusRepository extends ServiceEntityRepository
+class AmazonFeedSubmissionRepository extends ServiceEntityRepository
 {
     public function __construct(ManagerRegistry $registry)
     {
-        parent::__construct($registry, ItemUpdateStatus::class);
+        parent::__construct($registry, AmazonFeedSubmission::class);
     }
 
     // /**
-    //  * @return ItemUpdateStatus[] Returns an array of ItemUpdateStatus objects
+    //  * @return AmazonFeedSubmission[] Returns an array of AmazonFeedSubmission objects
     //  */
     /*
     public function findByExampleField($value)
@@ -37,7 +37,7 @@ class ItemUpdateStatusRepository extends ServiceEntityRepository
     */
 
     /*
-    public function findOneBySomeField($value): ?ItemUpdateStatus
+    public function findOneBySomeField($value): ?AmazonFeedSubmission
     {
         return $this->createQueryBuilder('i')
             ->andWhere('i.exampleField = :val')

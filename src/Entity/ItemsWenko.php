@@ -146,15 +146,16 @@ class ItemsWenko
     private $cost;
 
     /**
-     * @ORM\Column(type="float", length=255, nullable=true)
-     */
-    private $salePrice;
-
-    /**
      * @ORM\Column(type="string", length=255)
      */
     private $Brand;
 
+    /**
+     * @var string $name
+     *
+     * @ORM\Column(name="name", type="string")
+     */
+    private $name;
 
     public function getArticleId(): ?int
     {
@@ -435,18 +436,6 @@ class ItemsWenko
         return $this;
     }
 
-    public function getUvp(): ?float
-    {
-        return $this->uvp;
-    }
-
-    public function setUvp(float $uvp): self
-    {
-        $this->uvp = $uvp;
-
-        return $this;
-    }
-
     public function getStock(): ?int
     {
         return $this->stock;
@@ -497,20 +486,12 @@ class ItemsWenko
      */
     public function calculateCost($ekDiscount, $vkDiscount): self
     {
-        $uvp = $this->uvp;
-        $ek =  $uvp * (1 - $ekDiscount);
-        $vk = $uvp * (1 - $vkDiscount);
+        $price = $this->price;
+        $ek =  $price * (1 - $ekDiscount);
+        $vk = $price * (1 - $vkDiscount);
         $adCosts = 0;
         $this->cost = round($ek + ($vk * 0.085) + (($vk - $ek) / 119 * 19) + $adCosts,2);
         return $this;
-    }
-
-    /**
-     * @param mixed $salePrice
-     */
-    public function setSalePrice(): void
-    {
-        $this->salePrice = $this->uvp;
     }
 
     /**
@@ -543,4 +524,8 @@ class ItemsWenko
     {
         $this->batteryEnthalten = $batteryEnthalten;
     }
+
+
+
+
 }
