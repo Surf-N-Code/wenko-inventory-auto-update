@@ -143,6 +143,21 @@ class ArtikelstammController extends AbstractController
      * @Route("/amazon/get-item-actions", name="items.amazon.get_item_actions")
      */
     public function getAmazonItemActions(EntityManagerInterface $em) {
+        $classMetaData = $this->em->getClassMetadata(AmazonItemActions::class);
+        $connection = $this->em->getConnection();
+        $dbPlatform = $connection->getDatabasePlatform();
+        $connection->beginTransaction();
+        try {
+            $connection->query('SET FOREIGN_KEY_CHECKS=0');
+            $q = $dbPlatform->getTruncateTableSql($classMetaData->getTableName());
+            $connection->executeUpdate($q);
+            $connection->query('SET FOREIGN_KEY_CHECKS=1');
+            $connection->commit();
+        }
+        catch (\Exception $e) {
+            $connection->rollback();
+        }
+
         $wenkoItemRepo = $this->getDoctrine()->getRepository(ItemsWenko::class);
         $amazonItemRepo = $this->getDoctrine()->getRepository(AmazonListing::class);
         $itemsToRemove = $amazonItemRepo->getItemsToRemove();
@@ -231,24 +246,16 @@ class ArtikelstammController extends AbstractController
 
                 case 'remove':
                     $skuActions['remove'][] = [
-                        'sku'   => $item->getSku()
+                        $item->getSku()
                     ];
                     break;
             }
         }
         dump($skuActions);
-//        dd($debug);
+        dd($debug);
+        $deleteResponse = $this->amazonHandler->deleteProductBySku($skuActions['remove']);
+        dd($deleteResponse);
         $updateResponse = $this->amazonClient->updateProductInventory($skuActions);
-
-        $itemUpdateStatus = new AmazonFeedSubmission();
-        $itemUpdateStatus->setFeedSubmissionId($updateResponse['FeedSubmissionId']);
-        $itemUpdateStatus->setSubmittedAt(new \DateTime('now'));
-        $itemUpdateStatus->setFeedProcessingStatus($updateResponse['FeedProcessingStatus']);
-        $itemUpdateStatus->setFeedType($updateResponse['FeedType']);
-        $itemUpdateStatus->setSuccess(false);
-        $this->em->persist($itemUpdateStatus);
-        $this->em->flush();
-        dd($updateResponse);
     }
 
     /**
@@ -319,7 +326,13 @@ class ArtikelstammController extends AbstractController
         $feedSubmissionRepo = $this->em->getRepository(AmazonFeedSubmission::class);
 
         /** @var AmazonFeedSubmission $feed */
-        $feed = $feedSubmissionRepo->findBy(['feedSubmissionId' => $feedId])[0];
+        $feed = $feedSubmissionRepo->findBy(['feedSubmissionId' => $feedId]);
+        if (!$feed) {
+            return $this->render('artikelstamm/index.html.twig', [
+                'statusMessage' => 'No pending feed found'
+            ]);
+        }
+        $feed = $feed[0];
         if ($result['StatusCode'] === 'Complete') {
             $feed->setFeedProcessingStatus('_DONE_');
             $feed->setSuccess(true);

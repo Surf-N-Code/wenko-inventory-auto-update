@@ -5,8 +5,10 @@ namespace App\Services;
 
 
 use App\Controller\Exceptions\AmazonApiException;
+use App\Entity\AmazonFeedSubmission;
 use App\Entity\AmazonReportRequests;
 use App\Entity\AmazonListing;
+use App\Entity\ItemsWenko;
 use App\Repository\AmazonListingRepository;
 use App\Repository\AmazonReportRequestsRepository;
 use Doctrine\ORM\EntityManagerInterface;
@@ -108,6 +110,21 @@ class AmazonHandler
 
     public function getAmazonListings(string $reportId)
     {
+        $classMetaData = $this->em->getClassMetadata(AmazonListing::class);
+        $connection = $this->em->getConnection();
+        $dbPlatform = $connection->getDatabasePlatform();
+        $connection->beginTransaction();
+        try {
+            $connection->query('SET FOREIGN_KEY_CHECKS=0');
+            $q = $dbPlatform->getTruncateTableSql($classMetaData->getTableName());
+            $connection->executeUpdate($q);
+            $connection->query('SET FOREIGN_KEY_CHECKS=1');
+            $connection->commit();
+        }
+        catch (\Exception $e) {
+            $connection->rollback();
+        }
+
         $reportData = $this->amazonClient->getReportById($reportId);
 
         $stats = [
@@ -117,15 +134,7 @@ class AmazonHandler
         $i = 0;
         $batchSize = 10;
         foreach ($reportData as $index => $listing) {
-            $asin = $listing['asin1'];
-//            //@TODO find more efficient way of querying for every single product each round
-
-            $listingEntity = $this->amazonListingRepository->find($asin);
-            if (!$listingEntity) {
-                $stats['updated']++;
-                $listingEntity = new AmazonListing();
-            }
-
+            $listingEntity = new AmazonListing();
             $listingEntity->setAsin($listing['asin1']);
             $listingEntity->setSku($listing['seller-sku']);
             $listingEntity->setPrice($listing['price']);
@@ -160,6 +169,20 @@ class AmazonHandler
 
     public function deleteProductBySku(array $sku): array
     {
-        return $this->amazonClient->deleteProductBySku($sku);
+        $response = $this->amazonClient->deleteProductBySku($sku);
+        $this->addAmazonFeedSubmission($response);
+        return $response;
+    }
+
+    private function addAmazonFeedSubmission($response)
+    {
+        $itemUpdateStatus = new AmazonFeedSubmission();
+        $itemUpdateStatus->setFeedSubmissionId($response['FeedSubmissionId']);
+        $itemUpdateStatus->setSubmittedAt(new \DateTime('now'));
+        $itemUpdateStatus->setFeedProcessingStatus($response['FeedProcessingStatus']);
+        $itemUpdateStatus->setFeedType($response['FeedType']);
+        $itemUpdateStatus->setSuccess(false);
+        $this->em->persist($itemUpdateStatus);
+        $this->em->flush();
     }
 }
