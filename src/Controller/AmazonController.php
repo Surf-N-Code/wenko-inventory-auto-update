@@ -7,7 +7,7 @@ use App\Entity\AmazonListing;
 use App\Entity\AmazonItemActions;
 use App\Entity\ItemsWenko;
 use App\Entity\AmazonFeedSubmission;
-use App\Repository\AmazonItemActionsepository;
+use App\Repository\AmazonItemActionsRepository;
 use App\Repository\AmazonReportRequestsRepository;
 use App\Services\AmazonClient;
 use App\Services\AmazonHandler;
@@ -18,13 +18,16 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 
-class ArtikelstammController extends AbstractController
+class AmazonController extends AbstractController
 {
     private $amazonClient;
     private $em;
     private $amazonHandler;
 
-    public function __construct(AmazonClient $amazonClient, EntityManagerInterface $em, AmazonHandler $amazonHandler)
+    public function __construct(
+        AmazonClient $amazonClient,
+        EntityManagerInterface $em,
+        AmazonHandler $amazonHandler)
     {
         $this->amazonClient = $amazonClient;
         $this->em = $em;
@@ -32,130 +35,14 @@ class ArtikelstammController extends AbstractController
     }
 
     /**
-     * @Route("/home", name="home")
-     */
-    public function home()
-    {
-        return $this->render('base.html.twig');
-    }
-
-    /**
-     * @Route("/amazon/delete-used-products", name="index")
-     */
-    public function deleteUsedProducts()
-    {
-        $amazonListingRepo = $this->em->getRepository(AmazonListing::class);
-        $usedItems = $amazonListingRepo->findBy(['itemCondition' => 'UsedLikeNew']);
-        foreach($usedItems as $usedItem) {
-//            $this->em->remove($usedItem);
-            $sku[] = $usedItem->getSku();
-        }
-//        $this->em->flush();
-        //12100102 - deleted
-        //23781102
-        $response = $this->amazonHandler->deleteProductBySku(['23928100']);
-        dd($response);
-        return new Response("Deleting items");
-    }
-
-    /**
-     * @Route("/wenko/read-itemfile", name="items.wenko.read_itemfile")
-     */
-    public function readItemFile(EntityManagerInterface $em)
-    {
-        ini_set('max_execution_time', 120);
-        $csv = Reader::createFromPath(__DIR__.'/../Resources/Artikelstamm/20200201.csv', 'r');
-        $csv->setDelimiter('|');
-        $csv->setHeaderOffset(0);
-
-        $records = $csv->getRecords(); //returns all the CSV records as an Iterator object
-        $classMetaData = $em->getClassMetadata(ItemsWenko::class);
-        $connection = $em->getConnection();
-        $dbPlatform = $connection->getDatabasePlatform();
-        $connection->beginTransaction();
-        try {
-            $connection->query('SET FOREIGN_KEY_CHECKS=0');
-            $q = $dbPlatform->getTruncateTableSql($classMetaData->getTableName());
-            $connection->executeUpdate($q);
-            $connection->query('SET FOREIGN_KEY_CHECKS=1');
-            $connection->commit();
-        }
-        catch (\Exception $e) {
-            $connection->rollback();
-        }
-
-        $i = 0;
-        $batchSize = 50;
-        foreach($records as $record) {
-            $art = $em->find(ItemsWenko::class, $record['id']);
-            if(!$art) {
-                $art = new ItemsWenko();
-            }
-
-            $art->setArticleId($record['id']);
-            $art->setBatteryEnthalten($record['battery_enthalten']);
-            $art->setDeliveryTime($record['delivery_time']);
-            $art->setDescription($record['description']);
-            $art->setDescriptionHtml($record['description_html']);
-            $art->setEan($record['ean']);
-            $art->setHeight($record['height']);
-            $art->setImage1($record['image_url_1']);
-            $art->setImage2($record['image_url_2']);
-            $art->setImage3($record['image_url_3']);
-            $art->setImage4($record['image_url_4']);
-            $art->setImage5($record['image_url_5']);
-            $art->setImage6($record['image_url_6']);
-            $art->setImage7($record['image_url_7']);
-            $art->setImage8($record['image_url_8']);
-            $art->setImage9($record['image_url_9']);
-            $art->setImage10($record['image_url_10']);
-            $art->setLength($record['lenght']);
-            $art->setMarke($record['ecom_marke']);
-            $art->setMetaDescription($record['meta_description']);
-            $art->setMetaKeyword("");
-            $art->setName($record['name']);
-            $art->setStock(isset($record['quantity']) ? $record['quantity'] : 0);
-            $art->setShippingCost($record['shipping_cost']);
-            $art->setShopCategory($record['category']);
-            $art->setShopUrl($record['url']);
-            $art->setSku($record['sku']);
-            $art->setPrice($record['price_incl_tax']);
-            $art->setWeight($record['weight']);
-            $art->calculateCost(0.6, 0);
-            $art->setBrand("Wenko");
-
-            $em->persist($art);
-            if (($i % $batchSize) === 0) {
-                $em->flush();
-                $em->clear(); // Detaches all objects from Doctrine!
-            }
-            $i++;
-        }
-        $em->flush();
-        $em->clear();
-
-        return $this->render('artikelstamm/index.html.twig', [
-            'statusMessage' => sprintf('Added: %s wenko products to the wenko item database', $i)
-        ]);
-    }
-
-    /**
      * @Route("/amazon/get-item-actions", name="items.amazon.get_item_actions")
      */
-    public function getAmazonItemActions(EntityManagerInterface $em) {
-        $classMetaData = $this->em->getClassMetadata(AmazonItemActions::class);
-        $connection = $this->em->getConnection();
-        $dbPlatform = $connection->getDatabasePlatform();
-        $connection->beginTransaction();
+    public function getItemActions() {
         try {
-            $connection->query('SET FOREIGN_KEY_CHECKS=0');
-            $q = $dbPlatform->getTruncateTableSql($classMetaData->getTableName());
-            $connection->executeUpdate($q);
-            $connection->query('SET FOREIGN_KEY_CHECKS=1');
-            $connection->commit();
-        }
-        catch (\Exception $e) {
-            $connection->rollback();
+            $this->amazonHandler->truncateTable(AmazonItemActions::class);
+        } catch (Exceptions\AmazonApiException $e) {
+            dd($e);
+            return new Response('Failed truncating amazon item actions', 400);
         }
 
         $wenkoItemRepo = $this->getDoctrine()->getRepository(ItemsWenko::class);
@@ -183,13 +70,14 @@ class ArtikelstammController extends AbstractController
                 $itemActionEntity = new AmazonItemActions(
                     $itemAction,
                     $item->getSku(),
+                    $item->getEan(),
                     $item->getStock(),
                     $item->getPrice()
                 );
-                $em->persist($itemActionEntity);
+                $this->em->persist($itemActionEntity);
                 if (($i % $batchSize) === 0) {
-                    $em->flush();
-                    $em->clear(); // Detaches all objects from Doctrine!
+                    $this->em->flush();
+                    $this->em->clear(); // Detaches all objects from Doctrine!
                 }
                 $i++;
                 $statCount++;
@@ -197,65 +85,85 @@ class ArtikelstammController extends AbstractController
             $itemActionCollectionStats[$itemAction] = $statCount;
             $statCount = 0;
         }
-        $em->flush();
-        $em->clear();
+        $this->em->flush();
+        $this->em->clear();
 
-        return $this->render('artikelstamm/index.html.twig', [
-            'statusMessage' => sprintf(
-                'Removed: %s, added: %s, updated: %s',
-                $itemActionCollectionStats['remove'],
-                $itemActionCollectionStats['add'],
-                $itemActionCollectionStats['update']
-            )
-        ]);
+        return new Response(sprintf(
+            'Removed: %s, added: %s, updated: %s',
+            $itemActionCollectionStats['remove'],
+            $itemActionCollectionStats['add'],
+            $itemActionCollectionStats['update']
+        ), 201);
     }
 
     /**
      * @Route("/amazon/update-stock", name="items.amazon.update")
      */
-    public function updateAmazonStock(AmazonItemActionsepository $amazonItemActionsepository)
+    public function updateAmazonStock(AmazonItemActionsRepository $amazonItemActionsepository)
     {
         //@todo: http://docs.developer.amazonservices.com/en_US/notifications/Notifications_FeedProcessingFinishedNotification.html
-
-        ini_set('max_execution_time', 99999);
         $items = $amazonItemActionsepository->findAll();
-
         $skuActions = [];
+        $itemActionEntity = [];
         /** @var AmazonItemActions $item */
-        foreach ($items as $item) {
+        foreach ($items as $key => $item) {
             $debug[$item->getAmazonAction()][] = [
                 'sku'   => $item->getSku(),
                 'price' => $item->getPrice(),
-                'stock' => $item->getStock()
+                'stock' => $item->getStock(),
+                'entity' => $item
             ];
 
             switch ($item->getAmazonAction()) {
                 case 'update':
-                    $skuActions['update'][] = [
-                        'sku'   => $item->getSku(),
-                        'price' => $item->getPrice()
-                    ];
-                    break;
-
                 case 'add':
-                    $skuActions['add'][] = [
+                    $skuActions['createOrUpdate'][] = [
                         'sku'   => $item->getSku(),
-                        'price' => $item->getPrice()
+                        'price' => $item->getPrice(),
+                        'ean' => $item->getEan(),
+                        'stock' => $item->getStock()
                     ];
+                    $itemActionEntity['createOrUpdate'][] = $item;
                     break;
 
                 case 'remove':
                     $skuActions['remove'][] = [
                         $item->getSku()
                     ];
+                    $itemActionEntity['remove'][] = $item;
                     break;
             }
         }
-        dump($skuActions);
+
+        $failMsg = [];
+        if (!empty($skuActions['remove'])) {
+            try {
+                $this->amazonHandler->deleteProductBySku($skuActions['remove'], $itemActionEntity['remove']);
+            } catch (\Exception $e) {
+                dump($e);
+                $failMsg[] = sprintf('Failed deleting Amazon items with message: %s', $e->getMessage());
+            }
+        }
         dd($debug);
-        $deleteResponse = $this->amazonHandler->deleteProductBySku($skuActions['remove']);
-        dd($deleteResponse);
-        $updateResponse = $this->amazonClient->updateProductInventory($skuActions);
+        if (!empty($skuActions['createOrUpdate'])) {
+            try {
+                $this->amazonHandler->createOrUpdateProduct($skuActions['createOrUpdate'], $itemActionEntity['createOrUpdate']);
+            } catch (\Exception $e) {
+                $failMsg[] = sprintf('Failed updating or adding Amazon items with message: %s', $e->getMessage());
+            }
+        }
+
+        if (!empty($failMsg)) {
+            return new Response(sprintf('Failed updating Amazon inventory with mesage(s): %s', implode('', $failMsg)));
+        }
+
+        return new Response(
+            sprintf(
+                'Successfully sent %s products for deletion and %s products for an update or addition to amazon',
+                count($skuActions['remove']),
+                count($skuActions['createOrUpdate'])
+            ), 201
+        );
     }
 
     /**
@@ -319,7 +227,7 @@ class ArtikelstammController extends AbstractController
             $result = $this->amazonClient->getFeedSubmissionResult($feedId);
         } catch (Exceptions\AmazonApiException $e) {
             return $this->render('artikelstamm/index.html.twig', [
-                'Feed not ready yet, check back later'
+                'statusMessage' => 'Feed not ready yet, check back later'
             ]);
         }
 

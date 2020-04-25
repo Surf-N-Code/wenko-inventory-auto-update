@@ -2,6 +2,8 @@
 
 namespace App\Entity;
 
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
@@ -37,9 +39,14 @@ class AmazonFeedSubmission
     private $feedProcessingStatus;
 
     /**
-     * @ORM\Column(type="boolean")
+     * @ORM\ManyToMany(targetEntity="App\Entity\AmazonItemActions", mappedBy="feedSubmissionId", cascade={"persist"})
      */
-    private $success;
+    private $amazonItemActions;
+
+    public function __construct()
+    {
+        $this->amazonItemActions = new ArrayCollection();
+    }
 
     public function getId(): ?int
     {
@@ -95,14 +102,31 @@ class AmazonFeedSubmission
         return $this;
     }
 
-    public function getSuccess(): ?bool
+    /**
+     * @return Collection|AmazonItemActions[]
+     */
+    public function getAmazonItemActions(): Collection
     {
-        return $this->success;
+        return $this->amazonItemActions;
     }
 
-    public function setSuccess(bool $success): self
+    public function addAmazonItemAction(AmazonItemActions $amazonItemAction): self
     {
-        $this->success = $success;
+        if (!$this->amazonItemActions->contains($amazonItemAction)) {
+            $this->amazonItemActions[] = $amazonItemAction;
+            dump($this->amazonItemActions);
+//            $amazonItemAction->addFeedSubmissionId($this);
+        }
+
+        return $this;
+    }
+
+    public function removeAmazonItemAction(AmazonItemActions $amazonItemAction): self
+    {
+        if ($this->amazonItemActions->contains($amazonItemAction)) {
+            $this->amazonItemActions->removeElement($amazonItemAction);
+//            $amazonItemAction->removeFeedSubmissionId($this);
+        }
 
         return $this;
     }

@@ -4,7 +4,6 @@ namespace App\Entity;
 
 use App\Entity\Traits\TimestampableTrait;
 use Doctrine\ORM\Mapping as ORM;
-use App\Entity\Traits\BaseItemPropertiesTrait;
 
 /**
  * @ORM\Entity(repositoryClass="App\Repository\AmazonListingRepository")
@@ -21,6 +20,14 @@ class AmazonListing
      * @ORM\Column(name="sku", type="string")
      */
     private $sku;
+
+    /**
+     * @var string $ean
+     *
+     * @ORM\Id()
+     * @ORM\Column(name="ean", type="string")
+     */
+    private $ean;
 
     /**
      * @var string $asin
@@ -157,5 +164,21 @@ class AmazonListing
         }
 
         return $this;
+    }
+
+    /**
+     * @return string
+     */
+    public function getEan(): string
+    {
+        return $this->ean;
+    }
+
+    /**
+     * @param string $ean
+     */
+    public function setEan(string $ean): void
+    {
+        $this->ean = $ean;
     }
 }

@@ -6,12 +6,14 @@ namespace App\Services;
 
 use App\Controller\Exceptions\AmazonApiException;
 use App\Entity\AmazonFeedSubmission;
+use App\Entity\AmazonItemActions;
 use App\Entity\AmazonReportRequests;
 use App\Entity\AmazonListing;
 use App\Entity\ItemsWenko;
 use App\Repository\AmazonListingRepository;
 use App\Repository\AmazonReportRequestsRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use MCS\MWSProduct;
 
 class AmazonHandler
 {
@@ -110,22 +112,10 @@ class AmazonHandler
 
     public function getAmazonListings(string $reportId)
     {
-        $classMetaData = $this->em->getClassMetadata(AmazonListing::class);
-        $connection = $this->em->getConnection();
-        $dbPlatform = $connection->getDatabasePlatform();
-        $connection->beginTransaction();
-        try {
-            $connection->query('SET FOREIGN_KEY_CHECKS=0');
-            $q = $dbPlatform->getTruncateTableSql($classMetaData->getTableName());
-            $connection->executeUpdate($q);
-            $connection->query('SET FOREIGN_KEY_CHECKS=1');
-            $connection->commit();
-        }
-        catch (\Exception $e) {
-            $connection->rollback();
-        }
+        $this->truncateTable(AmazonListing::class);
 
         $reportData = $this->amazonClient->getReportById($reportId);
+
 
         $stats = [
             'added' => 0,
@@ -134,9 +124,11 @@ class AmazonHandler
         $i = 0;
         $batchSize = 10;
         foreach ($reportData as $index => $listing) {
+            $wenkoItemData = $this->em->getRepository(ItemsWenko::class)->findBy(['sku' => $listing['seller-sku']]);
             $listingEntity = new AmazonListing();
             $listingEntity->setAsin($listing['asin1']);
             $listingEntity->setSku($listing['seller-sku']);
+            $listingEntity->setEan(isset($wenkoItemData[0]) ? $wenkoItemData[0]->getEan() : '');
             $listingEntity->setPrice($listing['price']);
             $listingEntity->setStock($listing['quantity']);
             $listingEntity->setItemCondition($listing['item-condition']);
@@ -164,25 +156,95 @@ class AmazonHandler
 //        $string = '\x57\x45\x4e\x4b\x4f\x20\x31\x31\x30\x30\x30\x33\x31\x30\x30\x20\x57\x43\x2d\x53\x69\x74\x7a\x20\x46\x61\x6d\x69\x6c\x79\x20\x54\x6f\x69\x6c\x65\x74\x74\x65\x6e\x2d\x44\x6f\x70\x70\x65\x6c\x73\x69\x74\x7a\x2c\x20\x41\x62\x73\x65\x6e\x6b\x61\x75\x74\x6f\x6d\x61\x74\x69\x6b\x2c\x20\x46\x69\x78\x2d\x43\x6c\x69\x70\x20\x48\x79\x67\x69\x65\x6e\x65\x20\x4b\x75\x6e\x73\x74\x73\x74\x6f\x66\x66\x62\x65\x66\x65\x73\x74\x69\x67\x75\x6e\x67\x2c\x20\x33\x35\x2c\x35\x20\x78\x20\x33\x38\x20\x63\x6d\x2c\x20\x77\x65\x69\xdf';
 //        $string2 = 'lalala';
 //        dd(mb_detect_encoding($string2, 'JIS', true));
-
     }
 
-    public function deleteProductBySku(array $sku): array
+    public function deleteProductBySku(array $skus, array $amazonActionEntities): array
     {
-        $response = $this->amazonClient->deleteProductBySku($sku);
-        $this->addAmazonFeedSubmission($response);
+        dump("delete");
+//        $response = $this->amazonClient->deleteProductBySku($skus);
+//        dump($response);
+        $testdata = [
+            'FeedSubmissionId' => '123',
+            'FeedProcessingStatus' => '_PENDING_',
+            'FeedType' => '_TESTINGS_',
+
+        ];
+        $amazonFeedSubmission = $this->addAmazonFeedSubmission($testdata);
+//        $amazonFeedSubmission = $this->addAmazonFeedSubmission('123');
+//        dump($amazonFeedSubmission);
+
+        $this->relateItemActionsToAmazonFeedId($amazonActionEntities, $amazonFeedSubmission);
+//        return $response;
+    }
+
+    public function createOrUpdateProduct(array $products, array $itemActionEntities)
+    {
+        $productsToChange = [];
+        foreach ($products as $productData) {
+            $product = new MWSProduct();
+            $product->sku = $productData['sku'];
+            $product->price = $productData['price'];
+            $product->product_id = $productData['ean'];
+            $product->product_id_type = 'EAN';
+            $product->condition_type = 'New';
+            $product->quantity = $productData['stock'];
+            $productsToChange[] = $product;
+            if (!$product->validate()) {
+                continue;
+            }
+        }
+        $response = $this->amazonClient->createOrUpdateProduct($productsToChange);
+
+        $amazonFeedSubmission = $this->addAmazonFeedSubmission($response);
+        $this->relateItemActionsToAmazonFeedId($itemActionEntities, $amazonFeedSubmission);
         return $response;
     }
 
     private function addAmazonFeedSubmission($response)
     {
-        $itemUpdateStatus = new AmazonFeedSubmission();
-        $itemUpdateStatus->setFeedSubmissionId($response['FeedSubmissionId']);
-        $itemUpdateStatus->setSubmittedAt(new \DateTime('now'));
-        $itemUpdateStatus->setFeedProcessingStatus($response['FeedProcessingStatus']);
-        $itemUpdateStatus->setFeedType($response['FeedType']);
-        $itemUpdateStatus->setSuccess(false);
-        $this->em->persist($itemUpdateStatus);
+        $amazonFeedSubmission = new AmazonFeedSubmission();
+        $amazonFeedSubmission->setFeedSubmissionId($response['FeedSubmissionId']);
+        $amazonFeedSubmission->setSubmittedAt(new \DateTime('now'));
+        $amazonFeedSubmission->setFeedProcessingStatus($response['FeedProcessingStatus']);
+        $amazonFeedSubmission->setFeedType($response['FeedType']);
+
+        return $amazonFeedSubmission;
+    }
+
+    private function relateItemActionsToAmazonFeedId(array $amazonActionEntities, AmazonFeedSubmission $amazonFeedSubmission)
+    {
+        $i = 0;
+        $batchSize = 20;
+        foreach($amazonActionEntities as $amazonActionEntitiy) {
+            $amazonFeedSubmission->addAmazonItemAction($amazonActionEntitiy);
+            $this->em->persist($amazonFeedSubmission);
+            if (($i % $batchSize) === 0) {
+                $this->em->flush();
+                $this->em->clear();
+            }
+            $i++;
+        }
         $this->em->flush();
+        $this->em->clear();
+        dd();
+    }
+
+    public function truncateTable($class)
+    {
+        $classMetaData = $this->em->getClassMetadata($class);
+        $connection = $this->em->getConnection();
+        $dbPlatform = $connection->getDatabasePlatform();
+        $connection->beginTransaction();
+        try {
+            $connection->query('SET FOREIGN_KEY_CHECKS=0');
+            $q = $dbPlatform->getTruncateTableSql($classMetaData->getTableName());
+            $connection->executeUpdate($q);
+            $connection->query('SET FOREIGN_KEY_CHECKS=1');
+            $connection->commit();
+        }
+        catch (\Exception $e) {
+            $connection->rollback();
+            throw new AmazonApiException('Could not truncate table');
+        }
     }
 }

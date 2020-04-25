@@ -16,6 +16,13 @@ trait BaseItemPropertiesTrait
     private $sku;
 
     /**
+     * @var string $ean
+     *
+     * @ORM\Column(name="ean", type="string")
+     */
+    private $ean;
+
+    /**
      * @var float $price
      *
      * @ORM\Column(name="uvp", type="float")
@@ -91,5 +98,21 @@ trait BaseItemPropertiesTrait
     public function setStock(int $stock): void
     {
         $this->stock = $stock;
+    }
+
+    /**
+     * @return string
+     */
+    public function getEan(): string
+    {
+        return $this->ean;
+    }
+
+    /**
+     * @param string $ean
+     */
+    public function setEan(string $ean): void
+    {
+        $this->ean = $ean;
     }
 }

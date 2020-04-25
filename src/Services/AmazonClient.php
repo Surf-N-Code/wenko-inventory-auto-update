@@ -6,6 +6,7 @@ namespace App\Services;
 
 use App\Controller\Exceptions\AmazonApiException;
 use MCS\MWSClient;
+use MCS\MWSProduct;
 use MongoDB\Driver\Exception\AuthenticationException;
 
 class AmazonClient
@@ -66,22 +67,13 @@ class AmazonClient
         return $this->client->updateStock($skuAndPrice);
     }
 
-    public function createOrUpdateProduct()
+    public function createOrUpdateProduct(array $productsToChange): array
     {
-//        $product = new MCS\MWSProduct();
-//        $product->sku = 'TESTNOTFORSALE';
-//        $product->price = '1000.00';
-//        $product->product_id = 'B0031S9***';
-//        $product->product_id_type = 'ASIN';
-//        $product->condition_type = 'New';
-//        $product->quantity = 10;
-//
-//        if ($product->validate()) {
-//            // You can also submit an array of MWSProduct objects
-//            $result = $client->postProduct($product);
-//        } else {
-//            $errors = $product->getValidationErrors();
-//        }
+        try {
+            return $this->client->postProduct($productsToChange);
+        } catch (\Exception $e) {
+            throw new AmazonApiException(sprintf('Failed getting the feed status for feed id: %s with message: %s', $feedSubmissionId, $e->getMessage()));
+        }
     }
 
     public function getFeedSubmissionResult(string $feedSubmissionId): array
@@ -123,6 +115,7 @@ class AmazonClient
     public function deleteProductBySku(array $skus): array
     {
         try {
+            dump("delete2");
             return $this->client->deleteProductBySKU($skus);
         } catch (\Exception $e) {
             throw new AmazonApiException(sprintf('Failed deleting amazon items with message: %s', $e->getMessage()));

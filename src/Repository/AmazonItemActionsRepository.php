@@ -12,7 +12,7 @@ use Doctrine\Common\Persistence\ManagerRegistry;
  * @method AmazonItemActions[]    findAll()
  * @method AmazonItemActions[]    findBy(array $criteria, array $orderBy = null, $limit = null, $offset = null)
  */
-class AmazonItemActionsepository extends ServiceEntityRepository
+class AmazonItemActionsRepository extends ServiceEntityRepository
 {
     public function __construct(ManagerRegistry $registry)
     {
