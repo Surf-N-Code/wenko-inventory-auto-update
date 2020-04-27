@@ -18,3 +18,5 @@
 ###> Wenko item file data###
 /src/Resources/*
 ###< Wenko item file data###
+
+.idea/*

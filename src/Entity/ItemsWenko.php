@@ -18,11 +18,6 @@ class ItemsWenko
      */
     private $id;
 
-    /**
-     * @ORM\Column(type="integer")
-     */
-    private $articleId;
-
     use BaseItemPropertiesTrait;
 
     /**
@@ -168,11 +163,6 @@ class ItemsWenko
      */
     private $wenkoTopSellers;
 
-    public function getArticleId(): ?int
-    {
-        return $this->articleId;
-    }
-
     /**
      * @return mixed
      */
@@ -273,13 +263,6 @@ class ItemsWenko
     public function setHeight(?string $height): self
     {
         $this->height = $height;
-
-        return $this;
-    }
-
-    public function setArticleId(int $articleId): self
-    {
-        $this->articleId = $articleId;
 
         return $this;
     }

@@ -5,7 +5,9 @@ namespace App\Controller;
 
 
 use App\Entity\ItemsWenko;
+use App\Entity\ItemsWenkoHistory;
 use App\Entity\WenkoTopSellers;
+use App\Repository\ItemsWenkoHistoryRepository;
 use App\Repository\ItemsWenkoRepository;
 use App\Repository\WenkoTopSellersRepository;
 use App\Services\AmazonHandler;
@@ -20,7 +22,7 @@ class WenkoArtikelstammController extends AbstractController
     /**
      * @Route("/wenko/read-itemfile", name="items.wenko.read_itemfile")
      */
-    public function readItemFile(EntityManagerInterface $em, AmazonHandler $amazonHandler)
+    public function readItemFile(EntityManagerInterface $em, AmazonHandler $amazonHandler, ItemsWenkoRepository $itemsWenkoRepository, ItemsWenkoHistoryRepository $itemsWenkoHistoryRepository)
     {
         ini_set('max_execution_time', 120);
         $csv = Reader::createFromPath(__DIR__.'/../Resources/Artikelstamm/20200425.csv', 'r');
@@ -37,12 +39,17 @@ class WenkoArtikelstammController extends AbstractController
         $i = 0;
         $batchSize = 50;
         foreach($records as $record) {
-            $art = $em->find(ItemsWenko::class, $record['id']);
+//            dd($record);
+            $art = $itemsWenkoRepository->find($record['sku']);
+            $artHistory = $itemsWenkoHistoryRepository->find($record['sku']);
             if(!$art) {
                 $art = new ItemsWenko();
             }
 
-            $art->setArticleId($record['id']);
+            if(!$artHistory) {
+                $artHistory = new ItemsWenkoHistory();
+            }
+
             $art->setBatteryEnthalten($record['battery_enthalten']);
             $art->setDeliveryTime($record['delivery_time']);
             $art->setDescription($record['description']);
@@ -74,7 +81,12 @@ class WenkoArtikelstammController extends AbstractController
             $art->calculateCost(0.6, 0);
             $art->setBrand("Wenko");
 
+            $artHistory->setSku($record['sku']);
+            $artHistory->setEan($record['ean']);
+            $artHistory->setUpdatedAt(new \DateTime('now'));
+
             $em->persist($art);
+            $em->persist($artHistory);
             if (($i % $batchSize) === 0) {
                 $em->flush();
                 $em->clear(); // Detaches all objects from Doctrine!
@@ -122,6 +134,8 @@ class WenkoArtikelstammController extends AbstractController
 
             $art->setSku($iwRepo->findOneBy(['sku' => $record['SKU']]));
             dump($record['Qty Sold']);
+            dump($record['SKU']);
+            dump($record['GMV']);
             $art->setSales($record['Qty Sold']);
             $art->setSalesValue($record['GMV']);
 

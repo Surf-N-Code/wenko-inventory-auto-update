@@ -205,7 +205,7 @@ class AmazonController extends AbstractController
     }
 
     /**
-     * @Route("/amazon/get-report-listings/{reportId}", name="items.amazon.get_report_listings")
+     * @Route("/amazon/get-listings/{reportId}", name="items.amazon.get_listings")
      */
     public function getReportById($reportId) {
         try {
