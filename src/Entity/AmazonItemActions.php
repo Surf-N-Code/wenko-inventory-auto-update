@@ -34,6 +34,13 @@ class AmazonItemActions
      */
     private $id;
 
+    /**
+     * @var string $sku
+     *
+     * @ORM\Column(name="sku", type="string")
+     */
+    private $sku;
+
     use TimestampableTrait;
 
     use BaseItemPropertiesTrait;

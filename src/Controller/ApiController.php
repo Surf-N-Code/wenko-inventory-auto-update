@@ -25,17 +25,4 @@ class ApiController extends AbstractController
     {
         return $this->render('base.html.twig');
     }
-
-    /**
-     * @Route("/api/get-other-items", name="items.other.get")
-     */
-    public function getOtherItmes(AmazonListingRepository $amazonListingRepository, ItemsOtherRepository $itemsOtherRepository)
-    {
-        foreach ($amazonListingRepository->findAll() as $index => $item) {
-            if (!$itemsOtherRepository->find($item->getSku())) {
-
-            }
-        }
-
-    }
 }
