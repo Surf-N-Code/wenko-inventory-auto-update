@@ -130,7 +130,7 @@ class AmazonHandler
             $listingEntity->setSku($listing['seller-sku']);
             $listingEntity->setEan(isset($wenkoItemData[0]) ? $wenkoItemData[0]->getEan() : '');
             $listingEntity->setPrice($listing['price']);
-            $listingEntity->setStock($listing['quantity']);
+            $listingEntity->setStock($listing['quantity'] === '' ? 0 : $listing['quantity']);
             $listingEntity->setItemCondition($listing['item-condition']);
             $listingEntity->setListingId($listing['listing-id']);
             $listingEntity->setUpdatedAt(new \DateTime('now'));
