@@ -20,9 +20,9 @@ class AmazonClient
             $this->client = new MWSClient(
                 [
                     'Marketplace_Id' => 'A1PA6795UKMFR9',
-                    'Seller_Id' => 'A1809TBPDU55I8',
-                    'Access_Key_ID' => 'AKIAID7BXYFW6LMM6BUA',
-                    'Secret_Access_Key' => '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',
+                    'Seller_Id' => $_ENV['AMAZON_SELLER_ID'],
+                    'Access_Key_ID' => $_ENV['AMAZON_ACCESS_ID'],
+                    'Secret_Access_Key' => $_ENV['AMAZON_SECRET'],
                     'MWSAuthToken' => '',
                 ]
             );
