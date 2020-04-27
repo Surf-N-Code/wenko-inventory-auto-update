@@ -9,13 +9,6 @@ use Doctrine\ORM\Mapping as ORM;
 trait BaseItemPropertiesTrait
 {
     /**
-     * @var string $sku
-     *
-     * @ORM\Column(name="sku", type="string")
-     */
-    private $sku;
-
-    /**
      * @var string $ean
      *
      * @ORM\Column(name="ean", type="string")
@@ -35,22 +28,6 @@ trait BaseItemPropertiesTrait
      * @ORM\Column(name="stock", type="integer")
      */
     private $stock;
-
-    /**
-     * @return string
-     */
-    public function getSku(): string
-    {
-        return $this->sku;
-    }
-
-    /**
-     * @param string $sku
-     */
-    public function setSku(string $sku): void
-    {
-        $this->sku = $sku;
-    }
 
     /**
      * @return string

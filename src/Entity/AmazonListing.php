@@ -109,6 +109,11 @@ class AmazonListing
     private $itemCondition;
 
     /**
+     * @ORM\Column(type="boolean")
+     */
+    private $isWenko;
+
+    /**
      * @return string
      */
     public function getAsin(): string
@@ -180,5 +185,17 @@ class AmazonListing
     public function setEan(string $ean): void
     {
         $this->ean = $ean;
+    }
+
+    public function getIsWenko(): ?bool
+    {
+        return $this->isWenko;
+    }
+
+    public function setIsWenko(bool $isWenko): self
+    {
+        $this->isWenko = $isWenko;
+
+        return $this;
     }
 }

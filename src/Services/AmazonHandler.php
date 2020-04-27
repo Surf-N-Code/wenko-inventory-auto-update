@@ -10,8 +10,10 @@ use App\Entity\AmazonItemActions;
 use App\Entity\AmazonReportRequests;
 use App\Entity\AmazonListing;
 use App\Entity\ItemsWenko;
+use App\Entity\ItemsWenkoHistory;
 use App\Repository\AmazonListingRepository;
 use App\Repository\AmazonReportRequestsRepository;
+use App\Repository\ItemsWenkoRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use MCS\MWSProduct;
 
@@ -124,11 +126,15 @@ class AmazonHandler
         $i = 0;
         $batchSize = 10;
         foreach ($reportData as $index => $listing) {
-            $wenkoItemData = $this->em->getRepository(ItemsWenko::class)->findBy(['sku' => $listing['seller-sku']]);
+            $wenkoItemData = $this->em->getRepository(ItemsWenko::class)->find($listing['seller-sku']);
+            dump($listing['seller-sku']);
+            dump($wenkoItemData);
+            $wenkoHistoryItem = $this->em->getRepository(ItemsWenkoHistory::class)->find($listing['seller-sku']);
             $listingEntity = new AmazonListing();
             $listingEntity->setAsin($listing['asin1']);
             $listingEntity->setSku($listing['seller-sku']);
-            $listingEntity->setEan(isset($wenkoItemData[0]) ? $wenkoItemData[0]->getEan() : '');
+            $listingEntity->setEan($wenkoItemData !== null ? $wenkoItemData->getEan() : '');
+            $listingEntity->setIsWenko($wenkoHistoryItem !== null);
             $listingEntity->setPrice($listing['price']);
             $listingEntity->setStock($listing['quantity'] === '' ? 0 : $listing['quantity']);
             $listingEntity->setItemCondition($listing['item-condition']);

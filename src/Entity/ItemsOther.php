@@ -13,9 +13,10 @@ class ItemsOther
 {
     /**
      * @ORM\Id()
-     * @ORM\Column(type="integer")
+     *
+     * @ORM\Column(name="sku", type="string")
      */
-    private $articleId;
+    private $sku;
 
     use BaseItemPropertiesTrait;
 

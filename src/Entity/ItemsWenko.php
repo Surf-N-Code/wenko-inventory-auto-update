@@ -12,11 +12,10 @@ use App\Entity\Traits\BaseItemPropertiesTrait;
 class ItemsWenko
 {
     /**
-     * @ORM\Id()
-     * @ORM\GeneratedValue()
-     * @ORM\Column(type="integer")
+     * @ORM\id()
+     * @ORM\Column(name="sku", type="string")
      */
-    private $id;
+    private $sku;
 
     use BaseItemPropertiesTrait;
 
@@ -536,8 +535,4 @@ class ItemsWenko
 
         return $this;
     }
-
-
-
-
 }

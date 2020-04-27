@@ -27,6 +27,7 @@ class AmazonItemActions
         $this->feedSubmissionId = new ArrayCollection();
     }
 
+
     /**
      * @ORM\Id()
      * @ORM\GeneratedValue()
@@ -88,5 +89,21 @@ class AmazonItemActions
         }
 
         return $this;
+    }
+
+    /**
+     * @return string
+     */
+    public function getSku(): string
+    {
+        return $this->sku;
+    }
+
+    /**
+     * @param string $sku
+     */
+    public function setSku(string $sku): void
+    {
+        $this->sku = $sku;
     }
 }

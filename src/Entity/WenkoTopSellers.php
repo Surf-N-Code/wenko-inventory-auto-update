@@ -26,11 +26,6 @@ class WenkoTopSellers
      */
     private $salesValue;
 
-    /**
-     * @ORM\OneToOne(targetEntity="App\Entity\ItemsWenko", inversedBy="wenkoTopSellers", cascade={"persist", "remove"})
-     */
-    private $sku;
-
     public function getId(): ?int
     {
         return $this->id;
@@ -56,18 +51,6 @@ class WenkoTopSellers
     public function setSalesValue(string $salesValue): self
     {
         $this->salesValue = $salesValue;
-
-        return $this;
-    }
-
-    public function getSku(): ?ItemsWenko
-    {
-        return $this->sku;
-    }
-
-    public function setSku(?ItemsWenko $sku): self
-    {
-        $this->sku = $sku;
 
         return $this;
     }
