@@ -158,11 +158,6 @@ class ItemsWenko
     private $name;
 
     /**
-     * @ORM\OneToOne(targetEntity="App\Entity\WenkoTopSellers", mappedBy="sku", cascade={"persist", "remove"})
-     */
-    private $wenkoTopSellers;
-
-    /**
      * @return mixed
      */
     public function getArticleCategory()
@@ -516,23 +511,5 @@ class ItemsWenko
     public function setBatteryEnthalten($batteryEnthalten): void
     {
         $this->batteryEnthalten = $batteryEnthalten;
-    }
-
-    public function getWenkoTopSellers(): ?WenkoTopSellers
-    {
-        return $this->wenkoTopSellers;
-    }
-
-    public function setWenkoTopSellers(?WenkoTopSellers $wenkoTopSellers): self
-    {
-        $this->wenkoTopSellers = $wenkoTopSellers;
-
-        // set (or unset) the owning side of the relation if necessary
-        $newSku = null === $wenkoTopSellers ? null : $this;
-        if ($wenkoTopSellers->getSku() !== $newSku) {
-            $wenkoTopSellers->setSku($newSku);
-        }
-
-        return $this;
     }
 }

@@ -4416,28 +4416,27 @@ ean</ColNames>
       <ColNames>version</ColNames>
       <Primary>1</Primary>
     </key>
-    <column id="1021" parent="303" name="id">
+    <column id="1021" parent="303" name="sales">
       <Position>1</Position>
       <DataType>int(11)|0s</DataType>
       <NotNull>1</NotNull>
-      <SequenceIdentity>1</SequenceIdentity>
       <ColumnKind>normal</ColumnKind>
     </column>
-    <column id="1022" parent="303" name="sales">
+    <column id="1022" parent="303" name="sales_value">
       <Position>2</Position>
-      <DataType>int(11)|0s</DataType>
+      <DataType>varchar(255)|0s</DataType>
       <NotNull>1</NotNull>
       <ColumnKind>normal</ColumnKind>
     </column>
-    <column id="1023" parent="303" name="sales_value">
+    <column id="1023" parent="303" name="sku">
       <Position>3</Position>
-      <DataType>varchar(255)|0s</DataType>
+      <DataType>int(11)|0s</DataType>
       <NotNull>1</NotNull>
       <ColumnKind>normal</ColumnKind>
     </column>
     <key id="1024" parent="303" name="PRIMARY">
       <NameSurrogate>1</NameSurrogate>
-      <ColNames>id</ColNames>
+      <ColNames>sku</ColNames>
       <Primary>1</Primary>
     </key>
   </database-model>

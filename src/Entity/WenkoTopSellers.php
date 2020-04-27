@@ -11,10 +11,9 @@ class WenkoTopSellers
 {
     /**
      * @ORM\Id()
-     * @ORM\GeneratedValue()
      * @ORM\Column(type="integer")
      */
-    private $id;
+    private $sku;
 
     /**
      * @ORM\Column(type="integer")
@@ -26,9 +25,20 @@ class WenkoTopSellers
      */
     private $salesValue;
 
-    public function getId(): ?int
+    /**
+     * @return mixed
+     */
+    public function getSku()
     {
-        return $this->id;
+        return $this->sku;
+    }
+
+    /**
+     * @param mixed $sku
+     */
+    public function setSku($sku): void
+    {
+        $this->sku = $sku;
     }
 
     public function getSales(): ?int
