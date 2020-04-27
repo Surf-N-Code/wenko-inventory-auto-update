@@ -27,7 +27,6 @@ class AmazonItemActions
         $this->feedSubmissionId = new ArrayCollection();
     }
 
-
     /**
      * @ORM\Id()
      * @ORM\GeneratedValue()

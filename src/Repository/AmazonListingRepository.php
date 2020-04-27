@@ -30,6 +30,7 @@ class AmazonListingRepository extends ServiceEntityRepository
                         'wenko.sku = amazon.sku'
                     )
                     ->andWhere('wenko.sku IS NULL')
+                    ->andWhere('amazon.isWenko = 1')
                     ->getQuery()
                     ->getResult()
             ;
