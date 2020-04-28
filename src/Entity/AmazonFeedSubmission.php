@@ -39,7 +39,7 @@ class AmazonFeedSubmission
     private $feedProcessingStatus;
 
     /**
-     * @ORM\ManyToMany(targetEntity="App\Entity\AmazonItemActions", mappedBy="feedSubmissionId", cascade={"persist"})
+     * @ORM\OneToMany(targetEntity="App\Entity\AmazonItemActions", mappedBy="amazonFeedSubmission")
      */
     private $amazonItemActions;
 
@@ -114,8 +114,7 @@ class AmazonFeedSubmission
     {
         if (!$this->amazonItemActions->contains($amazonItemAction)) {
             $this->amazonItemActions[] = $amazonItemAction;
-            dump($this->amazonItemActions);
-//            $amazonItemAction->addFeedSubmissionId($this);
+            $amazonItemAction->setAmazonFeedSubmission($this);
         }
 
         return $this;
@@ -125,7 +124,10 @@ class AmazonFeedSubmission
     {
         if ($this->amazonItemActions->contains($amazonItemAction)) {
             $this->amazonItemActions->removeElement($amazonItemAction);
-//            $amazonItemAction->removeFeedSubmissionId($this);
+            // set the owning side to null (unless already changed)
+            if ($amazonItemAction->getAmazonFeedSubmission() === $this) {
+                $amazonItemAction->setAmazonFeedSubmission(null);
+            }
         }
 
         return $this;

@@ -1,21 +1,4 @@
-<!DOCTYPE html>
-<html>
-    <head>
-        <meta charset="UTF-8">
-        <title>{% block title %}Welcome!{% endblock %}</title>
-        {% block stylesheets %}
-            <link rel="stylesheet" type="text/css" href="{{ asset('main.css') }}">
-        {% endblock %}
-    </head>
-    <body>
-        <a href="/wenko/read-itemfile" class="api-endpoint-link">Read Wenko Itemfile</a>
-        <a href="/amazon/get-item-actions" class="api-endpoint-link">Get amazon item actions</a>
-        <a href="/amazon/get-report-status" class="api-endpoint-link">Get amazon report status</a>
-        <a href="/amazon/update-stock" class="api-endpoint-link">Update Stock</a>
-        <a href="/amazon/get-listings-report" class="api-endpoint-link">Get amazon listings report</a>
-        {% block body %}
-            <div class="">{{ statusMessage }}</div>
-        {% endblock %}
-        {% block javascripts %}{% endblock %}
-    </body>
-</html>
+{% extends 'base.html.twig' %}
+{% block body %}
+    <div class="">{{ statusMessage }}</div>
+{% endblock %}

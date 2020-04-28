@@ -11,6 +11,7 @@ use App\Entity\AmazonReportRequests;
 use App\Entity\AmazonListing;
 use App\Entity\ItemsWenko;
 use App\Entity\ItemsWenkoHistory;
+use App\Repository\AmazonItemActionsRepository;
 use App\Repository\AmazonListingRepository;
 use App\Repository\AmazonReportRequestsRepository;
 use App\Repository\ItemsWenkoRepository;
@@ -44,13 +45,15 @@ class AmazonHandler
         AmazonClient $amazonClient,
         EntityManagerInterface $em,
         AmazonReportRequestsRepository $amazonReportRequestsRepository,
-        AmazonListingRepository $amazonListingRepository
+        AmazonListingRepository $amazonListingRepository,
+        AmazonItemActionsRepository $amazonItemActionsRepository
     )
     {
         $this->amazonClient = $amazonClient;
         $this->em = $em;
         $this->amazonReportRequestsRepository = $amazonReportRequestsRepository;
         $this->amazonListingRepository = $amazonListingRepository;
+        $this->amazonItemActionsRepository = $amazonItemActionsRepository;
     }
 
     public function requestAmazonListingsReport(): string
@@ -90,8 +93,12 @@ class AmazonHandler
 
                 $finishedDate = \DateTime::createFromFormat(
                     'Y-m-d\TH:i:sP',
-                    $reportStatus['CompletedDate']
+                    $reportStatus['CompletedDate'],
+                    new \DateTimeZone('UTC')
                 );
+                $userTimezone = new \DateTimeZone('Europe/Amsterdam');
+                $offset = $userTimezone->getOffset($finishedDate) / 3600;
+                $finishedDate->add(new \DateInterval(sprintf('PT%sH', $offset)));
 
                 $report->setReportStatus(
                     $reportStatus['ReportProcessingStatus']
@@ -102,7 +109,7 @@ class AmazonHandler
                 $stats = [
                     'reportId' => $report->getReportId(),
                     'reportName' => $report->getReportName(),
-                    'reportStatus' => $report->getReportStatus()
+                    'reportStatus' => $report->getReportStatus(),
                 ];
             }
             $this->em->flush();
@@ -121,7 +128,7 @@ class AmazonHandler
 
         $stats = [
             'added' => 0,
-            'updated' => 0
+            'updated' => 0,
         ];
         $i = 0;
         $batchSize = 10;
@@ -167,20 +174,20 @@ class AmazonHandler
     public function deleteProductBySku(array $skus, array $amazonActionEntities): array
     {
         dump("delete");
-//        $response = $this->amazonClient->deleteProductBySku($skus);
-//        dump($response);
-        $testdata = [
-            'FeedSubmissionId' => '123',
-            'FeedProcessingStatus' => '_PENDING_',
-            'FeedType' => '_TESTINGS_',
-
-        ];
-        $amazonFeedSubmission = $this->addAmazonFeedSubmission($testdata);
+        $response = $this->amazonClient->deleteProductBySku($skus);
+        dump($response);
+//        $testdata = [
+//            'FeedSubmissionId' => '123',
+//            'FeedProcessingStatus' => '_PENDING_',
+//            'FeedType' => '_TESTINGS_',
+//
+//        ];
+        $amazonFeedSubmission = $this->addAmazonFeedSubmission($response);
 //        $amazonFeedSubmission = $this->addAmazonFeedSubmission('123');
-//        dump($amazonFeedSubmission);
+        dump($amazonFeedSubmission);
 
         $this->relateItemActionsToAmazonFeedId($amazonActionEntities, $amazonFeedSubmission);
-//        return $response;
+        return $response;
     }
 
     public function createOrUpdateProduct(array $products, array $itemActionEntities)
@@ -221,8 +228,11 @@ class AmazonHandler
     {
         $i = 0;
         $batchSize = 20;
-        foreach($amazonActionEntities as $amazonActionEntitiy) {
-            $amazonFeedSubmission->addAmazonItemAction($amazonActionEntitiy);
+        /** @var \App\Entity\AmazonItemActions $amazonActionEntity */
+        foreach($amazonActionEntities as $amazonActionEntity) {
+//            dd($amazonActionEntity);
+            $amazonActionEntity->setAmazonFeedSubmission($amazonFeedSubmission);
+            $this->em->persist($amazonActionEntity);
             $this->em->persist($amazonFeedSubmission);
             if (($i % $batchSize) === 0) {
                 $this->em->flush();
@@ -232,7 +242,6 @@ class AmazonHandler
         }
         $this->em->flush();
         $this->em->clear();
-        dd();
     }
 
     public function truncateTable($class)

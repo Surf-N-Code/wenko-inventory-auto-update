@@ -9,7 +9,6 @@
 
     </head>
     <body>
-        {% block body %}{% endblock %}
             <a href="/wenko/read-itemfile" class="api-endpoint-link">Read Wenko Itemfile</a>
             <a href="/wenko/read-top-seller" class="api-endpoint-link">Read Wenko Top Seller file</a>
             <a href="/amazon/get-item-actions" class="api-endpoint-link">Get amazon item actions</a>
@@ -19,9 +18,8 @@
             <a href="/amazon/get-listings/" id="get-listings-link" class="api-endpoint-link">Get amazon listings</a>
             <button id="generate-listings-link-generator" class="api-endpoint-link">Update get listings link with id from input</button>
 
-        <input type="number" id="amazon-listing-report-id">
+            <input type="number" id="amazon-listing-report-id">
 
-        {% block javascripts %}{% endblock %}
             <script type="text/javascript">
             document.getElementById("generate-listings-link-generator").onclick = function() {
                 console.log("gerner");
@@ -31,5 +29,6 @@
             // let getAmazonListingsLink = document.getElementById('get-listings-link');
             // getAmazonListingsLink.href = '/amazon/get-report-listings/'+document.getElementById('aamazon-listing-report-id').value;
             </script>
+            {% block body %}{% endblock %}
     </body>
 </html>

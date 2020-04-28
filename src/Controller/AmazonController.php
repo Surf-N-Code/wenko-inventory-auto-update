@@ -103,7 +103,8 @@ class AmazonController extends AbstractController
     public function updateAmazonStock(AmazonItemActionsRepository $amazonItemActionsepository)
     {
         //@todo: http://docs.developer.amazonservices.com/en_US/notifications/Notifications_FeedProcessingFinishedNotification.html
-        $items = $amazonItemActionsepository->findAll();
+//        $items = $amazonItemActionsepository->findItemsToProcess();
+        $items = $amazonItemActionsepository->findItemsToProcess();
         $skuActions = [];
         $itemActionEntity = [];
         /** @var AmazonItemActions $item */
@@ -141,11 +142,10 @@ class AmazonController extends AbstractController
             try {
                 $this->amazonHandler->deleteProductBySku($skuActions['remove'], $itemActionEntity['remove']);
             } catch (\Exception $e) {
-                dump($e);
                 $failMsg[] = sprintf('Failed deleting Amazon items with message: %s', $e->getMessage());
             }
         }
-        dd($debug);
+
         if (!empty($skuActions['createOrUpdate'])) {
             try {
                 $this->amazonHandler->createOrUpdateProduct($skuActions['createOrUpdate'], $itemActionEntity['createOrUpdate']);
@@ -161,8 +161,8 @@ class AmazonController extends AbstractController
         return new Response(
             sprintf(
                 'Successfully sent %s products for deletion and %s products for an update or addition to amazon',
-                count($skuActions['remove']),
-                count($skuActions['createOrUpdate'])
+                count($skuActions['remove'] ?? []),
+                count($skuActions['createOrUpdate'] ?? [])
             ), 201
         );
     }

@@ -24,7 +24,6 @@ class AmazonItemActions
         $this->price = $price;
         $this->createdAt = new \DateTime('now');
         $this->updatedAt = new \DateTime('now');
-        $this->feedSubmissionId = new ArrayCollection();
     }
 
     /**
@@ -51,9 +50,9 @@ class AmazonItemActions
     private $amazonAction;
 
     /**
-     * @ORM\ManyToMany(targetEntity="App\Entity\AmazonFeedSubmission", inversedBy="amazonItemActions", cascade={"persist"})
+     * @ORM\ManyToOne(targetEntity="App\Entity\AmazonFeedSubmission", inversedBy="amazonItemActions")
      */
-    private $feedSubmissionId;
+    private $amazonFeedSubmission;
 
     /**
      * @return mixed
@@ -72,32 +71,6 @@ class AmazonItemActions
     }
 
     /**
-     * @return Collection|AmazonFeedSubmission[]
-     */
-    public function getFeedSubmissionId(): Collection
-    {
-        return $this->feedSubmissionId;
-    }
-
-    public function addFeedSubmissionId(AmazonFeedSubmission $feedSubmissionId): self
-    {
-        if (!$this->feedSubmissionId->contains($feedSubmissionId)) {
-            $this->feedSubmissionId[] = $feedSubmissionId;
-        }
-
-        return $this;
-    }
-
-    public function removeFeedSubmissionId(AmazonFeedSubmission $feedSubmissionId): self
-    {
-        if ($this->feedSubmissionId->contains($feedSubmissionId)) {
-            $this->feedSubmissionId->removeElement($feedSubmissionId);
-        }
-
-        return $this;
-    }
-
-    /**
      * @return string
      */
     public function getSku(): string
@@ -111,5 +84,17 @@ class AmazonItemActions
     public function setSku(string $sku): void
     {
         $this->sku = $sku;
+    }
+
+    public function getAmazonFeedSubmission(): ?AmazonFeedSubmission
+    {
+        return $this->amazonFeedSubmission;
+    }
+
+    public function setAmazonFeedSubmission(?AmazonFeedSubmission $amazonFeedSubmission): self
+    {
+        $this->amazonFeedSubmission = $amazonFeedSubmission;
+
+        return $this;
     }
 }

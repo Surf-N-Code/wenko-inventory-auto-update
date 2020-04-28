@@ -31,7 +31,7 @@ class ItemsWenkoRepository extends ServiceEntityRepository
             )
             ->andWhere('amazon.sku IS NULL')
 //            ->andWhere('wenko.price > 17.98')
-            ->andWhere('wenko.price > 364')
+            ->andWhere('wenko.price > 178')
             ->getQuery()
             ->getResult()
         ;

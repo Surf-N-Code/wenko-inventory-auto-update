@@ -3,6 +3,7 @@
 namespace App\Repository;
 
 use App\Entity\AmazonItemActions;
+use App\Entity\AmazonListing;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Common\Persistence\ManagerRegistry;
 
@@ -35,6 +36,16 @@ class AmazonItemActionsRepository extends ServiceEntityRepository
         ;
     }
     */
+
+    public function findItemsToProcess(): ?array
+    {
+        return $this->createQueryBuilder('ia')
+                    ->select('ia')
+                    ->andWhere('ia.amazonFeedSubmission IS NULL')
+                    ->getQuery()
+                    ->getResult()
+            ;
+    }
 
     /*
     public function findOneBySomeField($value): ?ItemsWenko

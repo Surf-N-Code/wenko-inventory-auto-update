@@ -6,6 +6,6 @@
     Update their status to success or error on feed handled notification.
     Delete them from amazon_item_actions
 - keep a log of all item actions?
-- report of top products onto ftp
 - artikelstamm auf ftp
-- top sellers verarbeiten - min gewinn?
+- logging
+
