@@ -43,6 +43,11 @@ class AmazonFeedSubmission
      */
     private $amazonItemActions;
 
+    /**
+     * @ORM\Column(type="datetime", nullable=true)
+     */
+    private $finishedAt;
+
     public function __construct()
     {
         $this->amazonItemActions = new ArrayCollection();
@@ -129,6 +134,18 @@ class AmazonFeedSubmission
                 $amazonItemAction->setAmazonFeedSubmission(null);
             }
         }
+
+        return $this;
+    }
+
+    public function getFinishedAt(): ?\DateTimeInterface
+    {
+        return $this->finishedAt;
+    }
+
+    public function setFinishedAt(?\DateTimeInterface $finishedAt): self
+    {
+        $this->finishedAt = $finishedAt;
 
         return $this;
     }

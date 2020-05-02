@@ -76,7 +76,7 @@ class AmazonClient
         }
     }
 
-    public function getFeedSubmissionResult(string $feedSubmissionId): array
+    public function getFeedSubmissionResult(string $feedSubmissionId): string
     {
         try {
             return $this->client->GetFeedSubmissionResult($feedSubmissionId);

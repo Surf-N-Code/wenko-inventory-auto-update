@@ -6,15 +6,13 @@ namespace App\Services;
 
 use App\Controller\Exceptions\AmazonApiException;
 use App\Entity\AmazonFeedSubmission;
-use App\Entity\AmazonItemActions;
 use App\Entity\AmazonReportRequests;
 use App\Entity\AmazonListing;
 use App\Entity\ItemsWenko;
 use App\Entity\ItemsWenkoHistory;
+use App\Repository\AmazonFeedSubmissionRepository;
 use App\Repository\AmazonItemActionsRepository;
-use App\Repository\AmazonListingRepository;
 use App\Repository\AmazonReportRequestsRepository;
-use App\Repository\ItemsWenkoRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use MCS\MWSProduct;
 
@@ -36,24 +34,15 @@ class AmazonHandler
      */
     private $amazonReportRequestsRepository;
 
-    /**
-     * @var \App\Repository\AmazonListingRepository
-     */
-    private $amazonListingRepository;
-
     public function __construct(
         AmazonClient $amazonClient,
         EntityManagerInterface $em,
-        AmazonReportRequestsRepository $amazonReportRequestsRepository,
-        AmazonListingRepository $amazonListingRepository,
-        AmazonItemActionsRepository $amazonItemActionsRepository
+        AmazonReportRequestsRepository $amazonReportRequestsRepository
     )
     {
         $this->amazonClient = $amazonClient;
         $this->em = $em;
         $this->amazonReportRequestsRepository = $amazonReportRequestsRepository;
-        $this->amazonListingRepository = $amazonListingRepository;
-        $this->amazonItemActionsRepository = $amazonItemActionsRepository;
     }
 
     public function requestAmazonListingsReport(): string
@@ -134,8 +123,6 @@ class AmazonHandler
         $batchSize = 10;
         foreach ($reportData as $index => $listing) {
             $wenkoItemData = $this->em->getRepository(ItemsWenko::class)->find($listing['seller-sku']);
-            dump($listing['seller-sku']);
-            dump($wenkoItemData);
             $wenkoHistoryItem = $this->em->getRepository(ItemsWenkoHistory::class)->find($listing['seller-sku']);
             $listingEntity = new AmazonListing();
             $listingEntity->setAsin($listing['asin1']);
@@ -221,6 +208,8 @@ class AmazonHandler
         $amazonFeedSubmission->setFeedProcessingStatus($response['FeedProcessingStatus']);
         $amazonFeedSubmission->setFeedType($response['FeedType']);
 
+        $this->em->persist($amazonFeedSubmission);
+        $this->em->flush();
         return $amazonFeedSubmission;
     }
 
@@ -230,18 +219,14 @@ class AmazonHandler
         $batchSize = 20;
         /** @var \App\Entity\AmazonItemActions $amazonActionEntity */
         foreach($amazonActionEntities as $amazonActionEntity) {
-//            dd($amazonActionEntity);
             $amazonActionEntity->setAmazonFeedSubmission($amazonFeedSubmission);
             $this->em->persist($amazonActionEntity);
-            $this->em->persist($amazonFeedSubmission);
             if (($i % $batchSize) === 0) {
                 $this->em->flush();
-                $this->em->clear();
             }
             $i++;
         }
         $this->em->flush();
-        $this->em->clear();
     }
 
     public function truncateTable($class)

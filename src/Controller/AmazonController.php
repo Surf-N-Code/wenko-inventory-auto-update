@@ -23,26 +23,30 @@ class AmazonController extends AbstractController
     private $amazonClient;
     private $em;
     private $amazonHandler;
+    private $amazonItemActionRepo;
 
     public function __construct(
         AmazonClient $amazonClient,
         EntityManagerInterface $em,
-        AmazonHandler $amazonHandler)
+        AmazonHandler $amazonHandler,
+        AmazonItemActionsRepository $amazonItemActionsRepository
+)
     {
         $this->amazonClient = $amazonClient;
         $this->em = $em;
         $this->amazonHandler = $amazonHandler;
+        $this->amazonItemActionRepo = $amazonItemActionsRepository;
     }
 
     /**
      * @Route("/amazon/get-item-actions", name="items.amazon.get_item_actions")
      */
     public function getItemActions() {
-        try {
-            $this->amazonHandler->truncateTable(AmazonItemActions::class);
-        } catch (Exceptions\AmazonApiException $e) {
-            return new Response('Failed truncating amazon item actions', 400);
-        }
+//        try {
+//            $this->amazonHandler->truncateTable(AmazonItemActions::class);
+//        } catch (Exceptions\AmazonApiException $e) {
+//            return new Response('Failed truncating amazon item actions', 400);
+//        }
 
         $wenkoItemRepo = $this->getDoctrine()->getRepository(ItemsWenko::class);
         $amazonItemRepo = $this->getDoctrine()->getRepository(AmazonListing::class);
@@ -61,18 +65,27 @@ class AmazonController extends AbstractController
             'add' => 0,
             'update' => 0,
         ];
+
+        $itemActionsForStat = [];
         $i = 0;
+        $newActions = 0;
         $statCount = 0;
         $batchSize = 50;
         foreach ($itemActionCollection as $itemAction => $items) {
             foreach($items as $item) {
-                $itemActionEntity = new AmazonItemActions(
-                    $itemAction,
-                    $item->getSku(),
-                    $item->getEan(),
-                    $item->getStock(),
-                    $item->getPrice()
-                );
+                $itemActionEntity = $this->amazonItemActionRepo->findOneBy(['ean' => $item->getEan()]);
+                if (!$itemActionEntity) {
+                    $itemActionEntity = new AmazonItemActions(
+                        $itemAction,
+                        $item->getSku(),
+                        $item->getEan(),
+                        $item->getStock(),
+                        $item->getPrice()
+                    );
+                    $itemActionsForStat['new_action'][] = $itemActionEntity;
+                } else {
+                    $itemActionsForStat['updated_existing_action'][] = $itemActionEntity;
+                }
                 $this->em->persist($itemActionEntity);
                 if (($i % $batchSize) === 0) {
                     $this->em->flush();
@@ -93,7 +106,8 @@ class AmazonController extends AbstractController
                 $itemActionCollectionStats['remove'],
                 $itemActionCollectionStats['add'],
                 $itemActionCollectionStats['update']
-            )
+            ),
+            'detailedResultMessage' => $itemActionsForStat
         ]);
     }
 
@@ -225,34 +239,63 @@ class AmazonController extends AbstractController
     {
         try {
             $result = $this->amazonClient->getFeedSubmissionResult($feedId);
+//            file_put_contents(__DIR__.'amazon-feed-status.txt', $result);
+//            $result = file_get_contents(__DIR__.'amazon-feed-status.csv');
+//            dump($result);
         } catch (Exceptions\AmazonApiException $e) {
             return $this->render('result.html.twig', [
                 'statusMessage' => 'Feed not ready yet, check back later'
             ]);
         }
 
-        $feedSubmissionRepo = $this->em->getRepository(AmazonFeedSubmission::class);
+        if ($result) {
+            $lines = preg_split('/\r\n|\n|\r/', trim($result));
+            $parts = [];
+            foreach ($lines as $index => $line) {
+                $parts[] = explode("\t\t", trim($line));
+            }
 
+            $feedResult['status'] = 'pending';
+            if ($lines[0] === 'Feed Processing Summary:') {
+                $feedResult['status'] = 'done';
+            }
+
+            //get number of processed & successful records
+            $feedResult['processed'] = 0;
+            $feedResult['successful'] = 0;
+            foreach ($parts as $index => $part) {
+                if ($part[0] === 'Number of records processed') {
+                    $feedResult['processed'] = (int)$part[1];
+                }
+
+                if ($part[0] === 'Number of records successful') {
+                    $feedResult['successful'] = (int)$part[1];
+                }
+            }
+        }
+
+        $feedSubmissionRepo = $this->em->getRepository(AmazonFeedSubmission::class);
         /** @var AmazonFeedSubmission $feed */
-        $feed = $feedSubmissionRepo->findBy(['feedSubmissionId' => $feedId]);
+        $feed = $feedSubmissionRepo->findOneBy(['feedSubmissionId' => $feedId]);
         if (!$feed) {
             return $this->render('result.html.twig', [
                 'statusMessage' => 'No pending feed found'
             ]);
         }
-        $feed = $feed[0];
-        if ($result && $result['StatusCode'] === 'Complete') {
+
+        if (isset($result) && isset($feedResult) && $feedResult['status'] === 'done') {
             $feed->setFeedProcessingStatus('_DONE_');
-            $feed->setSuccess(true);
+            $feed->setFinishedAt(new \DateTime('now'));
+            $this->em->persist($feed);
+            $this->em->flush();
         }
 
         return $this->render('result.html.twig', [
             'statusMessage' => sprintf(
-                '%s messages processed, %s successfull messages, %s messages with errors, %s messages with warning',
-                $result['ProcessingSummary']['MessagesProcessed'],
-                $result['ProcessingSummary']['MessagesSuccessful'],
-                $result['ProcessingSummary']['MessagesWithError'],
-                $result['ProcessingSummary']['MessagesWithWarning']
+                'report status: %s, processed messages: %s, successfull messages: %s',
+                $feedResult['status'] ?? 'pending',
+                $feedResult['processed'] ?? 'still processing',
+                $feedResult['successful'] ?? 'still processing'
             ),
         ]);
     }
