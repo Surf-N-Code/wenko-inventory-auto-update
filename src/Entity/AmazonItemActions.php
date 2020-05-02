@@ -57,6 +57,14 @@ class AmazonItemActions
     /**
      * @return mixed
      */
+    public function getId()
+    {
+        return $this->id;
+    }
+
+    /**
+     * @return mixed
+     */
     public function getAmazonAction()
     {
         return $this->amazonAction;

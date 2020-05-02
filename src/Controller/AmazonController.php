@@ -103,7 +103,6 @@ class AmazonController extends AbstractController
     public function updateAmazonStock(AmazonItemActionsRepository $amazonItemActionsepository)
     {
         //@todo: http://docs.developer.amazonservices.com/en_US/notifications/Notifications_FeedProcessingFinishedNotification.html
-//        $items = $amazonItemActionsepository->findItemsToProcess();
         $items = $amazonItemActionsepository->findItemsToProcess();
         $skuActions = [];
         $itemActionEntity = [];
@@ -158,13 +157,13 @@ class AmazonController extends AbstractController
             return new Response(sprintf('Failed updating Amazon inventory with mesage(s): %s', implode('', $failMsg)));
         }
 
-        return new Response(
-            sprintf(
+        return $this->render('base.html.twig', [
+            'statusMessage' =>  sprintf(
                 'Successfully sent %s products for deletion and %s products for an update or addition to amazon',
                 count($skuActions['remove'] ?? []),
                 count($skuActions['createOrUpdate'] ?? [])
-            ), 201
-        );
+            )
+        ]);
     }
 
     /**
