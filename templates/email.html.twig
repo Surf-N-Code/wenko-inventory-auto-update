@@ -1,0 +1,32 @@
+    <div class="">{{ statusMessage }}</div>
+    {% if detailedResultMessage['new_action'] is defined %}
+        <div class="row">
+            NEW ACTIONS
+        </div>
+        <div class="">
+        {% for itemAction in detailedResultMessage['new_action'] %}
+            <div class="row">
+                {{ itemAction.sku }} |
+                {{ itemAction.amazonAction }} |
+                {{ itemAction.stock }} |
+                {{ itemAction.price }} € |
+            </div>
+        {% endfor %}
+        </div>
+    {% endif %}
+    {% if detailedResultMessage['updated_existing_action'] is defined %}
+        <div class="row">
+            UPDATE EXISTING ACTIONS
+        </div>
+        <div class="">
+            {% set items = detailedResultMessage['updated_existing_action'] %}
+            {% for itemAction in detailedResultMessage['updated_existing_action'] %}
+                <div class="row">
+                    {{ itemAction.sku }} |
+                    {{ itemAction.amazonAction }} |
+                    {{ itemAction.stock }} |
+                    {{ itemAction.price }} € |
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}

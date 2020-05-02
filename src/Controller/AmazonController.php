@@ -24,18 +24,21 @@ class AmazonController extends AbstractController
     private $em;
     private $amazonHandler;
     private $amazonItemActionRepo;
+    private $mailer;
 
     public function __construct(
         AmazonClient $amazonClient,
         EntityManagerInterface $em,
         AmazonHandler $amazonHandler,
-        AmazonItemActionsRepository $amazonItemActionsRepository
+        AmazonItemActionsRepository $amazonItemActionsRepository,
+        \Swift_Mailer $mailer
 )
     {
         $this->amazonClient = $amazonClient;
         $this->em = $em;
         $this->amazonHandler = $amazonHandler;
         $this->amazonItemActionRepo = $amazonItemActionsRepository;
+        $this->mailer = $mailer;
     }
 
     /**
@@ -99,6 +102,36 @@ class AmazonController extends AbstractController
         }
         $this->em->flush();
         $this->em->clear();
+
+        $message = $this->mailer->createMessage();
+        $message
+            ->setFrom('send@example.com')
+            ->setTo('ndilthey@gmail.com')
+            ->setBody(
+                $this->renderView(
+                // templates/emails/registration.html.twig
+                    'email.html.twig',
+                    [
+                        'statusMessage' => sprintf(
+                            'Removed: %s, added: %s, updated: %s',
+                            $itemActionCollectionStats['remove'],
+                            $itemActionCollectionStats['add'],
+                            $itemActionCollectionStats['update']
+                        ),
+                        'detailedResultMessage' => $itemActionsForStat
+                    ]
+                ),
+                'text/html'
+            )
+        ;
+
+        try {
+            $this->mailer->send($message);
+        } catch (\Exception $e) {
+            return $this->render('result.html.twig', [
+                'statusMessage' => 'Error sending mail'
+            ]);
+        }
 
         return $this->render('result.html.twig', [
             'statusMessage' => sprintf(
